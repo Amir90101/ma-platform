@@ -18,7 +18,7 @@ CRM и онлайн-бронирование для бильярдных, PS- и
 
 ## Что нужно установить
 
-- Node.js 20 или новее
+- Node.js 24 (версия в `.nvmrc`: `nvm install`)
 - Docker Desktop (для локального Supabase)
 - [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)
 - Claude Code v2.1.277 или новее: эта версия читает `AGENTS.md` без отдельного `CLAUDE.md`
@@ -29,7 +29,7 @@ CRM и онлайн-бронирование для бильярдных, PS- и
 
 ```bash
 git clone <repo-url>
-cd my-project
+cd ma-platform
 npm install
 
 cp .env.example .env.local
@@ -48,6 +48,8 @@ npm run dev               # http://localhost:3000
 | --- | --- |
 | `npm run dev` | Приложение на localhost:3000 |
 | `npm run lint` | ESLint |
+| `npm run typecheck` | Проверка типов TypeScript |
+| `npm run format` | Prettier |
 | `npm run test` | Юнит-тесты (Vitest) |
 | `npm run e2e` | E2E-тесты (Playwright) |
 | `supabase start` / `supabase stop` | Локальная база |

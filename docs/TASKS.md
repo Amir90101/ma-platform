@@ -17,7 +17,7 @@
 
 ## Перед стартом
 
-- [x] Node.js 20 (стоит v20.20.2)
+- [x] Node.js 24 (версия в `.nvmrc`, ставится через `nvm install`)
 - [x] Docker Desktop (установлен, должен быть запущен перед `supabase start`)
 - [x] Supabase CLI: `brew install supabase/tap/supabase`
 
@@ -44,8 +44,10 @@
 
 ### 0.3 Тесты и CI
 
-- [ ] Vitest, Playwright, pgTAP, скрипты в `package.json`, по одному тесту-пустышке на каждый уровень
-- [ ] GitHub Actions: lint, test, `supabase test db`
+- [x] Vitest, Playwright, pgTAP, скрипты в `package.json`, по одному тесту-пустышке на каждый уровень
+- [x] GitHub Actions: lint, test, `supabase test db`
+
+**Отличия от плана:** Node.js 24 вместо 20: npm из Node 20 падает при установке пакетов, а supabase-js объявил Node 20 устаревшим. Без `@vitejs/plugin-react`: конфликтует с shadcn по версии Babel, а юнит-тестам React не нужен. Добавлены `npm run typecheck` и `npm run format:check`, CI запускает их тоже. E2E гоняются в двух размерах: десктоп и телефон 390×844.
 
 **Проверка:** `npm run test`, `npm run e2e`, `supabase test db` зелёные локально; pull request на GitHub показывает зелёный CI.
 
