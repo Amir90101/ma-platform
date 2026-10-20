@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { HallView } from "@/components/hall/hall-view";
 import { loadHallLayout } from "@/lib/hall/load";
+import { loadOpenSessions } from "@/lib/hall/open-sessions";
 import { getVenueAccess } from "@/lib/venue-access";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -46,6 +47,31 @@ async function HallViewContent({
     .order("created_at");
   const hall = halls?.find((h) => h.id === hallParam) ?? halls?.[0];
 
+  const [
+    sessions,
+    { data: venueRow },
+    { data: allResources },
+    { data: packages },
+    { data: serverNow },
+  ] = await Promise.all([
+    loadOpenSessions(supabase, venue.id),
+    supabase.from("venues").select("timezone").eq("id", venue.id).single(),
+    supabase
+      .from("resources")
+      .select("id, name, hall_id")
+      .eq("venue_id", venue.id)
+      .eq("is_active", true)
+      .order("name"),
+    supabase
+      .from("packages")
+      .select("id, name")
+      .eq("venue_id", venue.id)
+      .eq("is_active", true)
+      .order("name"),
+    supabase.rpc("server_now"),
+  ]);
+  const hallNames = new Map((halls ?? []).map((h) => [h.id, h.name]));
+
   return (
     <>
       <Link
@@ -71,9 +97,18 @@ async function HallViewContent({
       {hall ? (
         <HallView
           venueId={venue.id}
+          timezone={venueRow?.timezone ?? "Asia/Almaty"}
           hall={hall}
           halls={halls!.map(({ id, name }) => ({ id, name }))}
           layout={await loadHallLayout(supabase, hall.id)}
+          sessions={sessions}
+          venueResources={(allResources ?? []).map((r) => ({
+            id: r.id,
+            name: r.name,
+            hallName: hallNames.get(r.hall_id) ?? "",
+          }))}
+          packages={packages ?? []}
+          serverNow={serverNow ?? new Date().toISOString()}
         />
       ) : (
         <p className="text-muted-foreground">{t("noHallView")}</p>

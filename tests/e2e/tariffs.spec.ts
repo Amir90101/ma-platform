@@ -30,6 +30,9 @@ async function addTariff(
   await form.getByLabel("До", { exact: true }).fill(t.to);
   await form.getByRole("button", { name: "Добавить" }).click();
   await expect(page.getByTestId("tariff-list")).toContainText(t.name);
+  // React очищает форму после действия чуть позже, чем обновляется список:
+  // ждём сброса, иначе следующий тариф начнут вводить в старую форму.
+  await expect(form.getByLabel("Название")).toHaveValue("");
 }
 
 const gaps = (page: Page) => page.getByTestId("grid-gaps").first();

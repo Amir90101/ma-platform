@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { WEEKDAYS } from "@/lib/validation/venue";
 import type { ResourceKind } from "@/lib/venue-types";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 type Action = (
   state: TariffFormState,
@@ -262,9 +263,10 @@ function Active({ defaultChecked }: { defaultChecked: boolean }) {
 
 function Submit({ pending, label }: { pending: boolean; label: string }) {
   const t = useTranslations("Tariffs");
+  const hydrated = useHydrated();
   return (
     <div>
-      <Button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending || !hydrated}>
         {pending ? t("saving") : label}
       </Button>
     </div>

@@ -21,7 +21,9 @@ $$;
 
 select pg_temp.login('11111111-1111-1111-1111-111111111111');
 select results_eq(
-  $$select email, role::text from public.get_org_staff('aaaaaaaa-0000-0000-0000-000000000001')$$,
+  -- Только пользователи seed: e2e на локальной базе могут оставить своих.
+  $$select email, role::text from public.get_org_staff('aaaaaaaa-0000-0000-0000-000000000001')
+    where email like '%@demo.local'$$,
   $$values ('owner@demo.local', 'owner'), ('admin@demo.local', 'admin')$$,
   'владелец видит сотрудников своей организации с email'
 );
