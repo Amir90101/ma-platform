@@ -259,6 +259,7 @@
 | amount | int not null | Больше нуля |
 | method | payment_method not null | |
 | created_by | uuid not null | |
+| created_at | timestamptz not null default now() | |
 | voided_at | timestamptz | Отменённую оплату не удаляем, а помечаем |
 | voided_by | uuid | |
 | void_reason | text | |
@@ -277,6 +278,9 @@
 | entity_id | uuid not null | |
 | before | jsonb | |
 | after | jsonb | |
+| created_at | timestamptz not null default now() | |
+
+Запрет на `update`, `delete` и `truncate` держат триггеры, поэтому он действует и для `service_role`. Пишут функции-триггеры через `write_audit`: на `sessions` (`session.voided`, `session.discount`), на `session_segments` (`session.time_edited` — правка закрытого отрезка) и на `payments` (`payment.voided`). `booking.cancelled` добавит этап 5.
 
 ## Ограничения, которые нельзя оставлять на код
 
@@ -347,7 +351,7 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `tariff_week_grid(venue_id, resource_kind)` | Участники | Тариф на каждые полчаса недели через `find_tariff`, для сетки на экране тарифов |
 | `close_session(session_id, discount_amount?)` | Администратор | Закрывает отрезки, считает и записывает суммы, снимок тарифов; бронь → `completed` |
 | `void_session(session_id, reason)` | Владелец | Аннулирует сеанс, пишет в журнал |
-| `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; нужна открытая смена |
+| `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; оплате нужна открытая смена. Закрытый сеанс нельзя переплатить; отмена требует причину |
 | `open_shift(venue_id, opening_cash)` / `close_shift(shift_id, closing_cash)` | Администратор | Смена; при закрытии считает `expected_cash` |
 
 ### Как считает `calc_session_amount`
