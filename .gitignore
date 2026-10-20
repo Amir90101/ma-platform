@@ -56,3 +56,6 @@ supabase/.temp
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# локальные настройки Claude Code
+.claude/launch.json

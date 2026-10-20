@@ -11,5 +11,53 @@
     "checking": "Проверяем базу…",
     "dbUp": "База доступна. Время сервера: {serverTime}",
     "dbDown": "База недоступна: {message}"
+  },
+  "Auth": {
+    "loginTitle": "Вход",
+    "registerTitle": "Регистрация владельца",
+    "forgotTitle": "Восстановление пароля",
+    "resetTitle": "Новый пароль",
+    "email": "Email",
+    "password": "Пароль",
+    "fullName": "Имя",
+    "passwordHint": "Пароль, не меньше {min} символов",
+    "newPasswordHint": "Новый пароль, не меньше {min} символов",
+    "confirmPassword": "Повторите пароль",
+    "loginSubmit": "Войти",
+    "loggingIn": "Входим…",
+    "registerSubmit": "Зарегистрироваться",
+    "registering": "Регистрируем…",
+    "sendResetLink": "Отправить ссылку",
+    "savePassword": "Сохранить пароль",
+    "forgotLink": "Забыли пароль?",
+    "registerLink": "Регистрация",
+    "loginLink": "Войти",
+    "haveAccount": "Уже есть аккаунт?",
+    "backToLogin": "Вернуться ко входу",
+    "checkEmailToConfirm": "Мы отправили письмо на {email}. Откройте ссылку в нём, чтобы подтвердить почту.",
+    "resetEmailSent": "Если {email} зарегистрирован, мы отправили на него ссылку для смены пароля.",
+    "errors": {
+      "emailInvalid": "Введите email, например name@mail.kz",
+      "passwordRequired": "Введите пароль",
+      "passwordTooShort": "Пароль слишком короткий",
+      "passwordsDontMatch": "Пароли не совпадают",
+      "nameRequired": "Введите имя",
+      "nameTooLong": "Имя слишком длинное",
+      "invalidCredentials": "Неверный email или пароль",
+      "emailTaken": "Этот email уже зарегистрирован. Войдите или восстановите пароль.",
+      "samePassword": "Новый пароль совпадает со старым",
+      "emailNotConfirmed": "Подтвердите почту по ссылке из письма",
+      "rateLimited": "Слишком много попыток. Подождите минуту и попробуйте снова.",
+      "linkExpired": "Ссылка устарела или уже использована. Запросите новую.",
+      "resetLinkExpired": "Ссылка для смены пароля устарела. Запросите новую.",
+      "unknown": "Что-то пошло не так. Попробуйте ещё раз."
+    }
+  },
+  "App": {
+    "title": "Админка",
+    "loading": "Загружаем…",
+    "logout": "Выйти",
+    "signedInAs": "Вы вошли как {email}",
+    "noVenuesYet": "Список заведений и их создание появятся на этапе 1.3."
   }
 }
