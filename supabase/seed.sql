@@ -108,3 +108,18 @@ insert into public.hall_objects (hall_id, kind, label, x, y, w, h) values
   ('aaaaaaaa-2222-0000-0000-000000000001', 'bar', 'Бар', 100, 600, 420, 80),
   ('aaaaaaaa-2222-0000-0000-000000000001', 'entrance', 'Вход', 1020, 700, 120, 60),
   ('bbbbbbbb-2222-0000-0000-000000000001', 'entrance', 'Вход', 1020, 700, 120, 60);
+
+-- Тарифы (этап 3.1) ----------------------------------------------------------
+-- Совпадают с демо-тарифами из docs/TESTING.md, раздел «Расчёт суммы».
+
+insert into public.tariffs (id, venue_id, name, resource_kinds, price_per_hour, weekdays, time_from, time_to) values
+  ('aaaaaaaa-4444-0000-0000-000000000001', 'aaaaaaaa-1111-0000-0000-000000000001', 'Будни день',
+   '{pool_table,russian_table}', 1500, '{1,2,3,4,5}', '10:00', '18:00'),
+  ('aaaaaaaa-4444-0000-0000-000000000002', 'aaaaaaaa-1111-0000-0000-000000000001', 'Вечер',
+   '{pool_table,russian_table}', 2500, '{1,2,3,4,5}', '18:00', '02:00'),
+  ('aaaaaaaa-4444-0000-0000-000000000003', 'aaaaaaaa-1111-0000-0000-000000000001', 'Выходные',
+   '{pool_table,russian_table}', 3000, '{6,7}', '10:00', '02:00');
+
+insert into public.packages (id, venue_id, name, resource_kinds, minutes, price) values
+  ('aaaaaaaa-5555-0000-0000-000000000001', 'aaaaaaaa-1111-0000-0000-000000000001', '3 часа за 5 000',
+   '{pool_table,russian_table}', 180, 5000);

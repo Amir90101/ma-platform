@@ -97,6 +97,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"packages": {
+                  Row: {
+                    "created_at": string,"id": string,"is_active": boolean,"minutes": number,"name": string,"price": number,"resource_kinds": (Database["public"]['Enums']["resource_kind"])[],"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"minutes": number,"name": string,"price": number,"resource_kinds": (Database["public"]['Enums']["resource_kind"])[],"venue_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"minutes"?: number,"name"?: string,"price"?: number,"resource_kinds"?: (Database["public"]['Enums']["resource_kind"])[],"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "packages_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"resources": {
                   Row: {
                     "bookable_online": boolean,"capacity": number | null,"created_at": string,"h": number,"hall_id": string,"id": string,"is_active": boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation": number,"shape": string,"venue_id": string,"w": number,"x": number,"y": number
@@ -117,6 +137,26 @@ isOneToOne: false
       referencedColumns: ["id","venue_id"]
     },{
       foreignKeyName: "resources_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tariffs": {
+                  Row: {
+                    "created_at": string,"id": string,"is_active": boolean,"name": string,"price_per_hour": number,"priority": number,"resource_kinds": (Database["public"]['Enums']["resource_kind"])[],"time_from": string,"time_to": string,"venue_id": string,"weekdays": (number)[]
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"price_per_hour": number,"priority"?: number,"resource_kinds": (Database["public"]['Enums']["resource_kind"])[],"time_from": string,"time_to": string,"venue_id": string,"weekdays": (number)[]
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"price_per_hour"?: number,"priority"?: number,"resource_kinds"?: (Database["public"]['Enums']["resource_kind"])[],"time_from"?: string,"time_to"?: string,"venue_id"?: string,"weekdays"?: (number)[]
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "tariffs_venue_id_fkey"
       columns: ["venue_id"]
 isOneToOne: false
       referencedRelation: "venues"
@@ -169,7 +209,30 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "get_org_staff":
+            "calc_play_amount":
+{ Args: { "p_at"?: string,"p_package_id"?: string,"p_segments": Json,"p_venue_id": string }; Returns: Json
+                           },
+"find_tariff":
+{ Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_local": string,"p_venue_id": string }; Returns: {
+              "created_at": string,
+"id": string,
+"is_active": boolean,
+"name": string,
+"price_per_hour": number,
+"priority": number,
+"resource_kinds": (Database["public"]['Enums']["resource_kind"])[],
+"time_from": string,
+"time_to": string,
+"venue_id": string,
+"weekdays": (number)[]
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "tariffs"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"get_org_staff":
 { Args: { "p_org_id": string }; Returns: {
               "created_at": string,"email": string,"full_name": string,"role": Database["public"]['Enums']["member_role"],"user_id": string
             }[]
