@@ -25,3 +25,23 @@ export async function registerOwner(page: Page, email: string) {
   await page.getByLabel(/Пароль, не меньше/).fill("test-password-1");
   await page.getByRole("button", { name: "Зарегистрироваться" }).click();
 }
+
+const MAILPIT = "http://127.0.0.1:54324";
+
+// Последнее письмо на адрес из локальной почты Supabase (Mailpit).
+export async function lastEmailText(email: string): Promise<string> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const search = await fetch(
+      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
+    ).then((r) => r.json());
+    const id = search.messages?.[0]?.ID;
+    if (id) {
+      const message = await fetch(`${MAILPIT}/api/v1/message/${id}`).then((r) =>
+        r.json(),
+      );
+      return message.HTML || message.Text;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Письмо на ${email} не пришло`);
+}

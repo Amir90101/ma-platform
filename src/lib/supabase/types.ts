@@ -103,7 +103,12 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "is_org_member":
+            "get_org_staff":
+{ Args: { "p_org_id": string }; Returns: {
+              "created_at": string,"email": string,"full_name": string,"role": Database["public"]['Enums']["member_role"],"user_id": string
+            }[]
+                           },
+"is_org_member":
 { Args: { "p_org_id": string }; Returns: boolean
                            },
 "is_org_owner":
@@ -117,6 +122,9 @@ isOneToOne: false
                            },
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"user_id_by_email":
+{ Args: { "p_email": string }; Returns: string
                            },
 "venue_photo_venue_id":
 { Args: { "p_name": string }; Returns: string

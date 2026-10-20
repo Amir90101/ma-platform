@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { updateVenue } from "@/app/app/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,12 +20,6 @@ export default async function VenueSettingsPage({
   const tApp = await getTranslations("App");
   return (
     <>
-      <Link
-        href="/app"
-        className="text-muted-foreground text-sm hover:underline"
-      >
-        {tApp("backToVenues")}
-      </Link>
       <Suspense
         fallback={<p className="text-muted-foreground">{tApp("loading")}</p>}
       >

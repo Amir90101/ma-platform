@@ -1,25 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, OWNER, uniqueEmail } from "./helpers";
-
-const MAILPIT = "http://127.0.0.1:54324";
-
-// Последнее письмо на адрес из локальной почты Supabase (Mailpit).
-async function lastEmailText(email: string): Promise<string> {
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const search = await fetch(
-      `${MAILPIT}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`,
-    ).then((r) => r.json());
-    const id = search.messages?.[0]?.ID;
-    if (id) {
-      const message = await fetch(`${MAILPIT}/api/v1/message/${id}`).then((r) =>
-        r.json(),
-      );
-      return message.HTML || message.Text;
-    }
-    await new Promise((r) => setTimeout(r, 500));
-  }
-  throw new Error(`Письмо на ${email} не пришло`);
-}
+import { lastEmailText, login, OWNER, uniqueEmail } from "./helpers";
 
 test("без входа /app ведёт на страницу входа и возвращает обратно после входа", async ({
   page,
