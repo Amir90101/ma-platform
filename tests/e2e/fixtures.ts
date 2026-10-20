@@ -95,3 +95,34 @@ export async function backdateOpenSession(resourceId: string, minutes: number) {
     .update({ started_at: at })
     .eq("id", seg!.session_id);
 }
+
+// Администратор заведения с паролем: пользователь Auth и строка members.
+export async function addAdmin(venueId: string) {
+  const email = `admin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@e2e.local`;
+  const password = "admin-password-1";
+  const { data: user } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  const { data: venue } = await admin
+    .from("venues")
+    .select("org_id")
+    .eq("id", venueId)
+    .single();
+  await admin
+    .from("members")
+    .insert({ org_id: venue!.org_id, user_id: user.user!.id, role: "admin" });
+  return { email, password };
+}
+
+// Клиент Supabase от имени пользователя: RPC с его auth.uid().
+export async function signedInClient(email: string, password: string) {
+  const client = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+  await client.auth.signInWithPassword({ email, password });
+  return client;
+}

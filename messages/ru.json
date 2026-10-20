@@ -158,7 +158,8 @@
       "backToVenue": "← К заведению",
       "hall": "Редактор карты",
       "workHall": "Карта зала",
-      "tariffs": "Тарифы"
+      "tariffs": "Тарифы",
+      "audit": "Журнал действий"
     }
   },
   "Staff": {
@@ -406,5 +407,29 @@
     "closeShift": "Закрыть смену",
     "shiftResult": "Смена закрыта. По системе: {expected} ₸, в кассе: {counted} ₸, разница: {diff} ₸",
     "currency": "{amount} ₸"
+  },
+  "Audit": {
+    "title": "Журнал действий",
+    "hint": "Кто и когда аннулировал сеанс, правил время, давал скидку, отменял оплату. Последние 200 записей.",
+    "empty": "Пока ничего не произошло.",
+    "author": "Кто: {who}",
+    "system": "система",
+    "actions": {
+      "session_voided": "Сеанс аннулирован",
+      "session_discount": "Скидка",
+      "session_time_edited": "Изменено время сеанса",
+      "payment_voided": "Оплата отменена"
+    },
+    "details": {
+      "discount": "Скидка {amount} ₸, итог {total} ₸",
+      "voided": "Причина: {reason}",
+      "paymentVoided": "{amount} ₸, {method}. Причина: {reason}",
+      "timeEdited": "Изменено начало или конец отрезка"
+    },
+    "methods": {
+      "cash": "наличные",
+      "kaspi": "Kaspi",
+      "card": "карта"
+    }
   }
 }
