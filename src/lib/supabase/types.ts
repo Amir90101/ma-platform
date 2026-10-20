@@ -23,7 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "customers": {
+            "audit_log": {
+                  Row: {
+                    "action": string,"after": Json | null,"before": Json | null,"created_at": string,"entity": string,"entity_id": string,"id": number,"user_id": string | null,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"after"?: Json | null,"before"?: Json | null,"created_at"?: string,"entity": string,"entity_id": string,"id"?: never,"user_id"?: string | null,"venue_id": string
+                  }
+                  Update: {
+                    "action"?: string,"after"?: Json | null,"before"?: Json | null,"created_at"?: string,"entity"?: string,"entity_id"?: string,"id"?: never,"user_id"?: string | null,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "audit_log_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"customers": {
                   Row: {
                     "consent_at": string | null,"created_at": string,"id": string,"name": string | null,"notes": string | null,"phone": string,"venue_id": string
                   }
@@ -131,6 +151,38 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "packages_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"payments": {
+                  Row: {
+                    "amount": number,"created_at": string,"created_by": string,"id": string,"method": Database["public"]['Enums']["payment_method"],"session_id": string,"shift_id": string,"venue_id": string,"void_reason": string | null,"voided_at": string | null,"voided_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "amount": number,"created_at"?: string,"created_by": string,"id"?: string,"method": Database["public"]['Enums']["payment_method"],"session_id": string,"shift_id": string,"venue_id": string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Update: {
+                    "amount"?: number,"created_at"?: string,"created_by"?: string,"id"?: string,"method"?: Database["public"]['Enums']["payment_method"],"session_id"?: string,"shift_id"?: string,"venue_id"?: string,"void_reason"?: string | null,"voided_at"?: string | null,"voided_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "payments_session_id_fkey"
+      columns: ["session_id"]
+isOneToOne: false
+      referencedRelation: "sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: false
+      referencedRelation: "shifts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "payments_venue_id_fkey"
       columns: ["venue_id"]
 isOneToOne: false
       referencedRelation: "venues"
@@ -339,7 +391,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "calc_play_amount":
+            "add_payment":
+{ Args: { "p_amount": number,"p_method": Database["public"]['Enums']["payment_method"],"p_session_id": string }; Returns: string
+                           },
+"calc_play_amount":
 { Args: { "p_at"?: string,"p_package_id"?: string,"p_segments": Json,"p_venue_id": string }; Returns: Json
                            },
 "calc_session_amount":
@@ -483,12 +538,18 @@ isOneToOne: false
 "venue_photo_venue_id":
 { Args: { "p_name": string }; Returns: string
                            },
+"void_payment":
+{ Args: { "p_payment_id": string,"p_reason": string }; Returns: undefined
+                           },
 "void_session":
 { Args: { "p_reason": string,"p_session_id": string }; Returns: undefined
+                           },
+"write_audit":
+{ Args: { "p_action": string,"p_after": Json,"p_before": Json,"p_entity": string,"p_entity_id": string,"p_venue_id": string }; Returns: undefined
                            }
           }
           Enums: {
-            "hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","segment_kind": "play"|"pause","session_status": "active"|"paused"|"closed"|"voided","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
+            "hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","payment_method": "cash"|"kaspi"|"card","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","segment_kind": "play"|"pause","session_status": "active"|"paused"|"closed"|"voided","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -608,7 +669,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"segment_kind": ["play", "pause"],"session_status": ["active", "paused", "closed", "voided"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
+            "hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"payment_method": ["cash", "kaspi", "card"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"segment_kind": ["play", "pause"],"session_status": ["active", "paused", "closed", "voided"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
           }
         }
 } as const
