@@ -61,6 +61,61 @@ function useServerClock() {
   return now;
 }
 
+// Статусы столов и смена во всех открытых окнах: изменения отрезков,
+// сеансов и смен приходят из Supabase Realtime (RLS пускает только
+// участников), и страница перечитывает данные с сервера.
+function useVenueRealtime(venueId: string): "connecting" | "on" {
+  const router = useRouter();
+  const [state, setState] = useState<"connecting" | "on">("connecting");
+  useEffect(() => {
+    const supabase = createClient();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let channel: ReturnType<typeof supabase.channel> | undefined;
+    let cancelled = false;
+    // Одно действие меняет несколько строк: собираем их в одну перерисовку.
+    const refresh = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => router.refresh(), 150);
+    };
+    const filter = `venue_id=eq.${venueId}`;
+
+    // Сессия из cookie не вызывает событие входа, и Realtime остался бы
+    // с anon-ключом: RLS не отдал бы изменения. Передаём токен явно.
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (cancelled) return;
+      if (data.session) {
+        await supabase.realtime.setAuth(data.session.access_token);
+      }
+      channel = supabase
+        .channel(`venue-${venueId}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "session_segments", filter },
+          refresh,
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "sessions", filter },
+          refresh,
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "shifts", filter },
+          refresh,
+        )
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") setState("on");
+        });
+    });
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [venueId, router]);
+  return state;
+}
+
 function formatElapsed(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(total / 3600);
@@ -97,6 +152,11 @@ export function HallView({
   const router = useRouter();
   const now = useServerClock();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  // Стол, который заняли из другого окна, пока мы нажимали «Старт».
+  // Отказ показываем на уровне панели: форма старта исчезнет, когда
+  // придёт новый статус стола.
+  const [busyNotice, setBusyNotice] = useState<string | null>(null);
+  const realtime = useVenueRealtime(venueId);
 
   // Сумма считается в базе: раз в минуту перечитываем страницу.
   useEffect(() => {
@@ -155,7 +215,10 @@ export function HallView({
           selectedKey={selectedKey}
           editable={false}
           statuses={statuses}
-          onSelect={setSelectedKey}
+          onSelect={(key) => {
+            setSelectedKey(key);
+            setBusyNotice(null);
+          }}
           onChange={() => {}}
         />
       </div>
@@ -174,7 +237,10 @@ export function HallView({
               <li key={r.id}>
                 <button
                   type="button"
-                  onClick={() => setSelectedKey(r.id!)}
+                  onClick={() => {
+                    setSelectedKey(r.id!);
+                    setBusyNotice(null);
+                  }}
                   aria-pressed={r.id === selectedKey}
                   data-state={state}
                   className="hover:bg-muted aria-pressed:border-primary rounded-md border px-3 py-1.5 text-sm data-[state=busy]:bg-red-50 data-[state=paused]:bg-amber-50"
@@ -191,10 +257,14 @@ export function HallView({
       <section
         className="grid gap-3 rounded-lg border p-4"
         data-testid="resource-panel"
+        data-realtime={realtime}
       >
         {selected ? (
           <>
             <h2 className="text-lg font-semibold">{selected.name}</h2>
+            {busyNotice === selected.id && (
+              <ActionError error="resource_busy" />
+            )}
             {sessionByResource.has(selected.id!) ? (
               <SessionCard
                 key={sessionByResource.get(selected.id!)!.id}
@@ -209,6 +279,10 @@ export function HallView({
                 key={selected.id}
                 resource={selected}
                 packages={packages}
+                onBusy={() => {
+                  setBusyNotice(selected.id!);
+                  router.refresh();
+                }}
               />
             )}
           </>
@@ -244,9 +318,11 @@ function ActionError({ error }: { error?: string }) {
 function StartForm({
   resource,
   packages,
+  onBusy,
 }: {
   resource: LayoutResource;
   packages: PackageOption[];
+  onBusy: () => void;
 }) {
   const tw = useTranslations("Work");
   const { pending, error, run } = useAction();
@@ -258,7 +334,11 @@ function StartForm({
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
-        run(() => startSession(resource.id!, formData));
+        run(async () => {
+          const r = await startSession(resource.id!, formData);
+          if (!r.ok && r.error === "resource_busy") onBusy();
+          return r;
+        });
       }}
     >
       <p className="text-sm">
@@ -316,7 +396,8 @@ function StartForm({
         </div>
       </div>
       <p className="text-muted-foreground text-xs">{tw("noEndHint")}</p>
-      <ActionError error={error} />
+      {/* «Стол занят» показывает панель: форма исчезнет со статусом стола. */}
+      <ActionError error={error === "resource_busy" ? undefined : error} />
       <div>
         <Button type="submit" size="lg" disabled={pending || !hydrated}>
           {pending ? tw("starting") : tw("start")}
