@@ -7,7 +7,7 @@ export async function getVenueAccess(venueId: string) {
   const supabase = await createClient();
   const { data: venue } = await supabase
     .from("venues")
-    .select("id, org_id, name")
+    .select("id, org_id, name, type")
     .eq("id", venueId)
     .maybeSingle();
   if (!venue) return null;

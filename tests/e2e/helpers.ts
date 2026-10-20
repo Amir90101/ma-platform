@@ -45,3 +45,21 @@ export async function lastEmailText(email: string): Promise<string> {
   }
   throw new Error(`Письмо на ${email} не пришло`);
 }
+
+// Новый владелец с заведением; возвращает id заведения.
+export async function ownerWithVenue(
+  page: Page,
+  type = "Бильярд",
+): Promise<string> {
+  await registerOwner(page, uniqueEmail("owner"));
+  await page.waitForURL("/app");
+  await page.goto("/app/new");
+  await page.getByLabel("Название организации").fill("ТОО Тест");
+  await page.getByLabel("Тип заведения").selectOption({ label: type });
+  await page.getByLabel("Название", { exact: true }).fill("Тестовый клуб");
+  await page.getByLabel("Адрес страницы").fill(`club-${uniqueSuffix()}`);
+  await page.getByLabel("Город").fill("Алматы");
+  await page.getByRole("button", { name: "Создать заведение" }).click();
+  await page.waitForURL(/\/app\/[0-9a-f-]{36}\/settings$/);
+  return page.url().split("/")[4];
+}

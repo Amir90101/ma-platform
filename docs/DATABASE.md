@@ -324,6 +324,7 @@ create unique index session_segments_one_open_per_session
 | `server_now()` | Все | Время сервера для поправки таймера |
 | `get_org_staff(org_id)` | Владелец | Сотрудники организации с email и именем из `auth.users`; остальным пустой результат |
 | `user_id_by_email(email)` | Только сервер (`service_role`) | id уже зарегистрированного пользователя, когда его приглашают администратором |
+| `save_hall_layout(hall_id, resources, objects)` | Владелец | Сохраняет карту зала целиком в одной транзакции: создаёт, меняет и удаляет ресурсы и декор. Ресурс с историей не удаляется, а выключается |
 | `get_public_venue(slug)` | anon | Профиль, фото, карта, цены опубликованного заведения. Без данных гостей |
 | `get_availability(venue_id, date, duration_min)` | anon | Свободные окна по каждому ресурсу на дату |
 | `create_public_booking(...)` | Только сервер (Route Handler) | Находит или создаёт гостя, создаёт бронь `confirmed`, возвращает `manage_token` |

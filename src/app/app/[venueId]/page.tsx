@@ -60,6 +60,12 @@ async function VenueHome({
             {t("home.settings")}
           </Link>
           <Link
+            href={`/app/${venue.id}/settings/hall`}
+            className={buttonVariants({ variant: "outline" })}
+          >
+            {t("home.hall")}
+          </Link>
+          <Link
             href={`/app/${venue.id}/settings/staff`}
             className={buttonVariants({ variant: "outline" })}
           >
