@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import {
-  closeSession,
   pauseSession,
   resumeSession,
   type SessionActionResult,
@@ -21,9 +20,12 @@ import {
   NativeSelectOption,
 } from "@/components/ui/native-select";
 import type { OpenSession } from "@/lib/hall/open-sessions";
+import { createClient } from "@/lib/supabase/client";
 import type { Layout, LayoutResource } from "@/lib/validation/hall";
+import { CheckoutPanel } from "./checkout-panel";
 import type { ItemStatus } from "./hall-canvas";
 import type { EditorItem } from "./hall-editor";
+import { type OpenShift, ShiftBar } from "./shift-bar";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 const HallCanvas = dynamic(() => import("./hall-canvas"), {
@@ -37,10 +39,21 @@ export type VenueResource = { id: string; name: string; hallName: string };
 export type PackageOption = { id: string; name: string };
 
 // Часы браузера с поправкой на время сервера: таймеры не зависят от того,
-// насколько точно идут часы на компьютере администратора.
-function useServerClock(serverNow: string) {
-  const [offset] = useState(() => Date.parse(serverNow) - Date.now());
-  const [now, setNow] = useState(() => Date.now() + offset);
+// насколько точно идут часы на компьютере администратора. Поправку меряем
+// запросом server_now из браузера с учётом половины времени запроса.
+function useServerClock() {
+  const [offset, setOffset] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const sentAt = Date.now();
+    createClient()
+      .rpc("server_now")
+      .then(({ data }) => {
+        if (!data) return;
+        const receivedAt = Date.now();
+        setOffset(Date.parse(data) + (receivedAt - sentAt) / 2 - receivedAt);
+      });
+  }, []);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now() + offset), 1000);
     return () => clearInterval(id);
@@ -67,7 +80,7 @@ export function HallView({
   sessions,
   venueResources,
   packages,
-  serverNow,
+  shift,
 }: {
   venueId: string;
   timezone: string;
@@ -77,12 +90,12 @@ export function HallView({
   sessions: OpenSession[];
   venueResources: VenueResource[];
   packages: PackageOption[];
-  serverNow: string;
+  shift: OpenShift | null;
 }) {
   const t = useTranslations("Hall");
   const tw = useTranslations("Work");
   const router = useRouter();
-  const now = useServerClock(serverNow);
+  const now = useServerClock();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
 
   // Сумма считается в базе: раз в минуту перечитываем страницу.
@@ -116,6 +129,7 @@ export function HallView({
 
   return (
     <div className="grid gap-4">
+      <ShiftBar venueId={venueId} shift={shift} timezone={timezone} />
       {halls.length > 1 && (
         <nav aria-label={t("halls")} className="flex flex-wrap gap-2">
           {halls.map((h) => (
@@ -329,6 +343,8 @@ function SessionCard({
   const tw = useTranslations("Work");
   const { pending, error, run } = useAction();
   const [target, setTarget] = useState("");
+  // «Стоп» ставит сеанс на паузу (сумма перестаёт расти) и открывает чек.
+  const [checkout, setCheckout] = useState(false);
   const time = (iso: string) =>
     new Intl.DateTimeFormat("ru-RU", {
       hour: "2-digit",
@@ -387,75 +403,89 @@ function SessionCard({
         <p className="text-muted-foreground text-xs">{tw("amountUpdated")}</p>
       )}
 
-      <div className="flex flex-wrap gap-2">
-        {paused ? (
-          <Button
-            type="button"
-            disabled={pending}
-            onClick={() => run(() => resumeSession(session.id))}
-          >
-            {tw("resume")}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            variant="outline"
-            disabled={pending}
-            onClick={() => run(() => pauseSession(session.id))}
-          >
-            {tw("pause")}
-          </Button>
-        )}
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={pending}
-          onClick={() => {
-            if (
-              window.confirm(tw("stopConfirm", { amount: session.amount ?? 0 }))
-            ) {
-              run(() => closeSession(session.id));
-            }
+      {checkout ? (
+        <CheckoutPanel
+          sessionId={session.id}
+          onCancel={() => {
+            setCheckout(false);
+            run(() => resumeSession(session.id));
           }}
-        >
-          {tw("stop")}
-        </Button>
-      </div>
+        />
+      ) : (
+        <>
+          <div className="flex flex-wrap gap-2">
+            {paused ? (
+              <Button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => resumeSession(session.id))}
+              >
+                {tw("resume")}
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={pending}
+                onClick={() => run(() => pauseSession(session.id))}
+              >
+                {tw("pause")}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={pending}
+              onClick={() =>
+                run(async () => {
+                  const r = paused
+                    ? { ok: true as const }
+                    : await pauseSession(session.id);
+                  if (r.ok) setCheckout(true);
+                  return r;
+                })
+              }
+            >
+              {tw("stop")}
+            </Button>
+          </div>
 
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="grid gap-1.5">
-          <Label htmlFor="transfer-to">{tw("transferTo")}</Label>
-          <NativeSelect
-            id="transfer-to"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            disabled={!freeResources.length}
-          >
-            <NativeSelectOption value="">
-              {freeResources.length ? "—" : tw("noFreeResources")}
-            </NativeSelectOption>
-            {freeResources.map((r) => (
-              <NativeSelectOption key={r.id} value={r.id}>
-                {r.name} · {r.hallName}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </div>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || !target}
-          onClick={() =>
-            run(async () => {
-              const r = await transferSession(session.id, target);
-              if (r.ok) onTransferred(target);
-              return r;
-            })
-          }
-        >
-          {tw("transferSubmit")}
-        </Button>
-      </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <div className="grid gap-1.5">
+              <Label htmlFor="transfer-to">{tw("transferTo")}</Label>
+              <NativeSelect
+                id="transfer-to"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                disabled={!freeResources.length}
+              >
+                <NativeSelectOption value="">
+                  {freeResources.length ? "—" : tw("noFreeResources")}
+                </NativeSelectOption>
+                {freeResources.map((r) => (
+                  <NativeSelectOption key={r.id} value={r.id}>
+                    {r.name} · {r.hallName}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={pending || !target}
+              onClick={() =>
+                run(async () => {
+                  const r = await transferSession(session.id, target);
+                  if (r.ok) onTransferred(target);
+                  return r;
+                })
+              }
+            >
+              {tw("transferSubmit")}
+            </Button>
+          </div>
+        </>
+      )}
       <ActionError error={error} />
     </div>
   );

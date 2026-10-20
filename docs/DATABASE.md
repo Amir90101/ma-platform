@@ -353,6 +353,8 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `void_session(session_id, reason)` | Владелец | Аннулирует сеанс, пишет в журнал |
 | `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; оплате нужна открытая смена. Закрытый сеанс нельзя переплатить; отмена требует причину |
 | `open_shift(venue_id, opening_cash)` / `close_shift(shift_id, closing_cash)` | Администратор | Смена; при закрытии считает `expected_cash` |
+| `add_session_item(session_id, name, price, qty)` / `remove_session_item(item_id)` | Администратор | Товары в счёте открытого сеанса |
+| `checkout_session(session_id, discount, payments)` | Администратор | `close_session` и оплаты одной транзакцией; сумма оплат равна итогу, для оплаты нужна открытая смена |
 
 ### Как считает `calc_session_amount`
 

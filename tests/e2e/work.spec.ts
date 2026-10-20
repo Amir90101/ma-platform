@@ -72,7 +72,6 @@ test("пауза, продолжение, перенос на другой ст�
   page,
 }) => {
   await openWorkScreen(page);
-  page.on("dialog", (dialog) => dialog.accept());
   const panel = page.getByTestId("resource-panel");
 
   await resourceButton(page, "Стол 1").click();
@@ -101,12 +100,16 @@ test("пауза, продолжение, перенос на другой ст�
     "data-state",
     "busy",
   );
-
   // Панель перешла на новый стол.
   await expect(panel.getByRole("heading")).toHaveText("Стол 2");
+
+  // «Стоп» ставит на паузу и открывает чек; «Вернуться к игре» продолжает.
   await panel.getByRole("button", { name: "Стоп" }).click();
+  await expect(panel.getByTestId("checkout")).toBeVisible();
   await expect(resourceButton(page, "Стол 2")).toHaveAttribute(
     "data-state",
-    "free",
+    "paused",
   );
+  await panel.getByRole("button", { name: "Вернуться к игре" }).click();
+  await expect(panel.getByTestId("session-status")).toHaveText("Занят");
 });
