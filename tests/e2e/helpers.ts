@@ -2,6 +2,8 @@ import type { Page } from "@playwright/test";
 
 // Демо-пользователи из supabase/seed.sql.
 export const OWNER = { email: "owner@demo.local", password: "demo12345" };
+export const ADMIN = { email: "admin@demo.local", password: "demo12345" };
+export const DEMO_VENUE_ID = "aaaaaaaa-1111-0000-0000-000000000001";
 
 export async function login(page: Page, email: string, password: string) {
   await page.getByLabel("Email").fill(email);
