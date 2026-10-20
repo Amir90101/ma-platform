@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: Lint, types, unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run test
+
+  database-and-e2e:
+    name: Database and e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start Supabase
+        run: supabase start -x studio,imgproxy,vector,logflare,edge-runtime,supavisor,postgres-meta
+      - name: Database tests
+        run: supabase test db
+      - name: Write .env.local
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          sed -e "s#^NEXT_PUBLIC_SUPABASE_URL=.*#NEXT_PUBLIC_SUPABASE_URL=$API_URL#" \
+              -e "s#^NEXT_PUBLIC_SUPABASE_ANON_KEY=.*#NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY#" \
+              -e "s#^SUPABASE_SERVICE_ROLE_KEY=.*#SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY#" \
+              -e "s#^NEXT_PUBLIC_TURNSTILE_SITE_KEY=.*#NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA#" \
+              -e "s#^TURNSTILE_SECRET_KEY=.*#TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA#" \
+              .env.example > .env.local
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: E2E tests
+        run: npm run e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
