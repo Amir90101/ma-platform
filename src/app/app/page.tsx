@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { logout } from "@/app/(auth)/actions";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -14,37 +13,68 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AppHome() {
   const t = await getTranslations("App");
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8">
+    <>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold">{t("venuesTitle")}</h1>
+      </div>
       <Suspense
         fallback={<p className="text-muted-foreground">{t("loading")}</p>}
       >
-        <CurrentUser />
+        <VenueList />
       </Suspense>
-    </main>
+    </>
   );
 }
 
-async function CurrentUser() {
+async function VenueList() {
   const t = await getTranslations("App");
+  const tVenue = await getTranslations("Venue");
   const supabase = await createClient();
-  // Proxy уже не пускает без входа; здесь вторая проверка на сервере.
-  const { data } = await supabase.auth.getClaims();
-  if (!data?.claims) redirect("/login");
+  // RLS отдаёт только заведения организаций пользователя.
+  const { data: venues } = await supabase
+    .from("venues")
+    .select("id, name, city, type")
+    .order("created_at");
+
+  if (!venues?.length) {
+    return (
+      <div className="grid justify-items-start gap-4">
+        <p className="text-muted-foreground">{t("noVenues")}</p>
+        <Link href="/app/new" className={buttonVariants()}>
+          {t("createFirstVenue")}
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <>
-      <header className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <form action={logout}>
-          <Button type="submit" variant="outline">
-            {t("logout")}
-          </Button>
-        </form>
-      </header>
-      <p data-testid="current-user">
-        {t("signedInAs", { email: String(data.claims.email) })}
-      </p>
-      <p className="text-muted-foreground">{t("noVenuesYet")}</p>
-    </>
+    <div className="grid gap-4">
+      <ul className="divide-y rounded-lg border">
+        {venues.map((venue) => (
+          <li key={venue.id}>
+            <Link
+              href={`/app/${venue.id}/settings`}
+              className="hover:bg-muted flex items-center justify-between gap-4 px-4 py-3"
+            >
+              <span>
+                <span className="block font-medium">{venue.name}</span>
+                <span className="text-muted-foreground text-sm">
+                  {tVenue(`types.${venue.type}`)} · {venue.city}
+                </span>
+              </span>
+              <span className="text-sm">{t("openSettings")}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <div>
+        <Link
+          href="/app/new"
+          className={buttonVariants({ variant: "outline" })}
+        >
+          {t("addVenue")}
+        </Link>
+      </div>
+    </div>
   );
 }

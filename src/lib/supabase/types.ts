@@ -117,6 +117,9 @@ isOneToOne: false
                            },
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"venue_photo_venue_id":
+{ Args: { "p_name": string }; Returns: string
                            }
           }
           Enums: {

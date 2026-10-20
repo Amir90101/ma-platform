@@ -1,19 +1,7 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { login, OWNER, uniqueEmail } from "./helpers";
 
-// Демо-пользователи из supabase/seed.sql.
-const OWNER = { email: "owner@demo.local", password: "demo12345" };
 const MAILPIT = "http://127.0.0.1:54324";
-
-async function login(page: Page, email: string, password: string) {
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Пароль", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Войти" }).click();
-}
-
-// Уникальный email на каждый запуск: тесты не мешают друг другу и повторному прогону.
-function uniqueEmail(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@e2e.local`;
-}
 
 // Последнее письмо на адрес из локальной почты Supabase (Mailpit).
 async function lastEmailText(email: string): Promise<string> {
