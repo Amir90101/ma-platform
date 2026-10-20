@@ -50,29 +50,34 @@ async function VenueHome({
           {isOwner ? t("home.roleOwner") : t("home.roleAdmin")}
         </p>
       </div>
-      {/* Настройки и сотрудники только владельцу; администратору их не показываем. */}
-      {isOwner && (
-        <nav className="flex flex-wrap gap-2">
-          <Link
-            href={`/app/${venue.id}/settings`}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            {t("home.settings")}
-          </Link>
-          <Link
-            href={`/app/${venue.id}/settings/hall`}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            {t("home.hall")}
-          </Link>
-          <Link
-            href={`/app/${venue.id}/settings/staff`}
-            className={buttonVariants({ variant: "outline" })}
-          >
-            {t("home.staff")}
-          </Link>
-        </nav>
-      )}
+      <nav className="flex flex-wrap gap-2">
+        <Link href={`/app/${venue.id}/hall`} className={buttonVariants()}>
+          {t("home.workHall")}
+        </Link>
+        {/* Настройки и сотрудники только владельцу; администратору их не показываем. */}
+        {isOwner && (
+          <>
+            <Link
+              href={`/app/${venue.id}/settings`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("home.settings")}
+            </Link>
+            <Link
+              href={`/app/${venue.id}/settings/hall`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("home.hall")}
+            </Link>
+            <Link
+              href={`/app/${venue.id}/settings/staff`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("home.staff")}
+            </Link>
+          </>
+        )}
+      </nav>
       <p className="text-muted-foreground">{t("home.workScreensLater")}</p>
     </>
   );
