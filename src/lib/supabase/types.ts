@@ -23,7 +23,47 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "members": {
+            "hall_objects": {
+                  Row: {
+                    "created_at": string,"h": number,"hall_id": string,"id": string,"kind": Database["public"]['Enums']["hall_object_kind"],"label": string | null,"rotation": number,"w": number,"x": number,"y": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"h": number,"hall_id": string,"id"?: string,"kind": Database["public"]['Enums']["hall_object_kind"],"label"?: string | null,"rotation"?: number,"w": number,"x": number,"y": number
+                  }
+                  Update: {
+                    "created_at"?: string,"h"?: number,"hall_id"?: string,"id"?: string,"kind"?: Database["public"]['Enums']["hall_object_kind"],"label"?: string | null,"rotation"?: number,"w"?: number,"x"?: number,"y"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "hall_objects_hall_id_fkey"
+      columns: ["hall_id"]
+isOneToOne: false
+      referencedRelation: "halls"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"halls": {
+                  Row: {
+                    "created_at": string,"height": number,"id": string,"name": string,"sort": number,"venue_id": string,"width": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"height"?: number,"id"?: string,"name": string,"sort"?: number,"venue_id": string,"width"?: number
+                  }
+                  Update: {
+                    "created_at"?: string,"height"?: number,"id"?: string,"name"?: string,"sort"?: number,"venue_id"?: string,"width"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "halls_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"members": {
                   Row: {
                     "created_at": string,"org_id": string,"role": Database["public"]['Enums']["member_role"],"user_id": string
                   }
@@ -56,6 +96,32 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"resources": {
+                  Row: {
+                    "bookable_online": boolean,"capacity": number | null,"created_at": string,"h": number,"hall_id": string,"id": string,"is_active": boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation": number,"shape": string,"venue_id": string,"w": number,"x": number,"y": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "bookable_online"?: boolean,"capacity"?: number | null,"created_at"?: string,"h": number,"hall_id": string,"id"?: string,"is_active"?: boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation"?: number,"shape"?: string,"venue_id": string,"w": number,"x": number,"y": number
+                  }
+                  Update: {
+                    "bookable_online"?: boolean,"capacity"?: number | null,"created_at"?: string,"h"?: number,"hall_id"?: string,"id"?: string,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["resource_kind"],"name"?: string,"rotation"?: number,"shape"?: string,"venue_id"?: string,"w"?: number,"x"?: number,"y"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "resources_hall_id_venue_id_fkey"
+      columns: ["hall_id","venue_id"]
+isOneToOne: false
+      referencedRelation: "halls"
+      referencedColumns: ["id","venue_id"]
+    },{
+      foreignKeyName: "resources_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
                   ]
                 },"venue_photos": {
                   Row: {
@@ -108,6 +174,9 @@ isOneToOne: false
               "created_at": string,"email": string,"full_name": string,"role": Database["public"]['Enums']["member_role"],"user_id": string
             }[]
                            },
+"hall_venue_id":
+{ Args: { "p_hall_id": string }; Returns: string
+                           },
 "is_org_member":
 { Args: { "p_org_id": string }; Returns: boolean
                            },
@@ -131,7 +200,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "member_role": "owner"|"admin","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
+            "hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -251,7 +320,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "member_role": ["owner", "admin"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
+            "hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
           }
         }
 } as const
