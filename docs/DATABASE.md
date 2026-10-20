@@ -100,7 +100,7 @@
 | --- | --- | --- |
 | id | uuid | |
 | venue_id | uuid not null | → venues; дублируется для RLS и Realtime-фильтров |
-| hall_id | uuid not null | → halls |
+| hall_id | uuid not null | → halls; составной ключ `(hall_id, venue_id)`, поэтому зал только своего заведения. Зал с ресурсами не удаляется |
 | kind | resource_kind not null | |
 | name | text not null | «Стол 3», «PS-5», «VIP-кабинка» |
 | capacity | int | Для караоке, саун, PS-зон |
@@ -303,6 +303,7 @@ create unique index session_segments_one_open_per_session
 - `is_venue_member(venue_id uuid) returns boolean` — пользователь состоит в организации заведения.
 - `is_venue_owner(venue_id uuid) returns boolean` — пользователь владелец этой организации.
 - `is_org_member(org_id uuid)` и `is_org_owner(org_id uuid)` — то же для организации. Нужны политикам `organizations`, `members` и `venues`, где заведения ещё нет.
+- `hall_venue_id(hall_id uuid) returns uuid` — заведение зала, для политик `hall_objects`, где нет `venue_id`.
 
 Владелец попадает в `members` с ролью `owner` автоматически: триггер `organizations_add_owner_as_member` после создания организации. Через политики владелец добавляет, меняет и удаляет только администраторов, свою строку `owner` он изменить не может.
 
@@ -364,4 +365,4 @@ create unique index session_segments_one_open_per_session
 
 ## Seed
 
-`supabase/seed.sql` создаёт демо-бильярдную «Демо Бильярд» со slug `demo-billiards`: один зал, 6 столов пул и 2 русских, тарифы «Будни день», «Вечер», «Выходные», владельца `owner@demo.local` и администратора `admin@demo.local` с паролем `demo12345`. Второе заведение «Демо PS-клуб» (`demo-ps-club`, не опубликовано) с владельцем `owner2@demo.local` нужно тестам RLS. id в seed фиксированные, на них ссылаются тесты. Зал, столы и тарифы добавляются в seed на этапах 2 и 3.
+`supabase/seed.sql` создаёт демо-бильярдную «Демо Бильярд» со slug `demo-billiards`: один зал, 6 столов пул и 2 русских, тарифы «Будни день», «Вечер», «Выходные», владельца `owner@demo.local` и администратора `admin@demo.local` с паролем `demo12345`. Второе заведение «Демо PS-клуб» (`demo-ps-club`, не опубликовано) с владельцем `owner2@demo.local` нужно тестам RLS. id в seed фиксированные, на них ссылаются тесты. Зал «Основной зал» с 6 столами пул, 2 русскими, баром и входом добавлен на этапе 2.1; у PS-клуба зал «Комнаты» с двумя PS-зонами для тестов RLS. Тарифы добавятся на этапе 3.
