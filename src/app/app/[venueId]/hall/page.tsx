@@ -52,7 +52,7 @@ async function HallViewContent({
     { data: venueRow },
     { data: allResources },
     { data: packages },
-    { data: serverNow },
+    { data: shift },
   ] = await Promise.all([
     loadOpenSessions(supabase, venue.id),
     supabase.from("venues").select("timezone").eq("id", venue.id).single(),
@@ -68,7 +68,12 @@ async function HallViewContent({
       .eq("venue_id", venue.id)
       .eq("is_active", true)
       .order("name"),
-    supabase.rpc("server_now"),
+    supabase
+      .from("shifts")
+      .select("id, opened_at, opening_cash")
+      .eq("venue_id", venue.id)
+      .is("closed_at", null)
+      .maybeSingle(),
   ]);
   const hallNames = new Map((halls ?? []).map((h) => [h.id, h.name]));
 
@@ -108,7 +113,15 @@ async function HallViewContent({
             hallName: hallNames.get(r.hall_id) ?? "",
           }))}
           packages={packages ?? []}
-          serverNow={serverNow ?? new Date().toISOString()}
+          shift={
+            shift
+              ? {
+                  id: shift.id,
+                  openedAt: shift.opened_at,
+                  openingCash: shift.opening_cash,
+                }
+              : null
+          }
         />
       ) : (
         <p className="text-muted-foreground">{t("noHallView")}</p>

@@ -394,11 +394,17 @@ isOneToOne: false
             "add_payment":
 { Args: { "p_amount": number,"p_method": Database["public"]['Enums']["payment_method"],"p_session_id": string }; Returns: string
                            },
+"add_session_item":
+{ Args: { "p_name": string,"p_price": number,"p_qty"?: number,"p_session_id": string }; Returns: string
+                           },
 "calc_play_amount":
 { Args: { "p_at"?: string,"p_package_id"?: string,"p_segments": Json,"p_venue_id": string }; Returns: Json
                            },
 "calc_session_amount":
 { Args: { "p_at"?: string,"p_session_id": string }; Returns: Json
+                           },
+"checkout_session":
+{ Args: { "p_discount_amount": number,"p_payments": Json,"p_session_id": string }; Returns: Json
                            },
 "close_open_segment":
 { Args: { "p_at": string,"p_session_id": string }; Returns: {
@@ -511,6 +517,9 @@ isOneToOne: false
                            },
 "pause_session":
 { Args: { "p_session_id": string }; Returns: undefined
+                           },
+"remove_session_item":
+{ Args: { "p_item_id": string }; Returns: undefined
                            },
 "resume_session":
 { Args: { "p_session_id": string }; Returns: undefined
