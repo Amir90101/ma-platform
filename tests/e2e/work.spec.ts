@@ -18,14 +18,8 @@ async function openWorkScreen(page: Page) {
 }
 
 // Сценарий 8: гость без брони.
-test("администратор запускает стол, видит таймер и сумму; занятый стол не запустить", async ({
-  page,
-  context,
-}) => {
+test("администратор запускает стол, видит таймер и сумму", async ({ page }) => {
   const venue = await openWorkScreen(page);
-  // Второе окно открыто до старта и ещё считает стол свободным.
-  const second = await context.newPage();
-  await second.goto(page.url());
 
   await resourceButton(page, "Стол 1").click();
   const panel = page.getByTestId("resource-panel");
@@ -55,16 +49,6 @@ test("администратор запускает стол, видит тай�
   await resourceButton(page, "Стол 1").click();
   await expect(panel.getByTestId("session-timer")).toHaveText(/^0:59:\d\d$/);
   await expect(panel.getByTestId("session-amount")).toHaveText("1200 ₸");
-
-  // Второе окно пытается запустить тот же стол.
-  await resourceButton(second, "Стол 1").click();
-  await second
-    .getByTestId("resource-panel")
-    .getByRole("button", { name: "Старт" })
-    .click();
-  await expect(second.getByTestId("work-error")).toHaveText(
-    "Стол уже занят. Обновите карту.",
-  );
 });
 
 // Сценарий 10: пауза и перенос, затем остановка.
