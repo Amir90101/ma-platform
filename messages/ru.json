@@ -1,0 +1,9 @@
+{
+  "Common": {
+    "productName": "Booking CRM"
+  },
+  "Home": {
+    "title": "Booking CRM для заведений",
+    "subtitle": "Карта зала, сеансы, касса и онлайн-бронирование."
+  }
+}

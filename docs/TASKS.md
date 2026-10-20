@@ -25,9 +25,11 @@
 
 ### 0.1 Каркас приложения
 
-- [ ] Next.js с TypeScript strict, Tailwind, shadcn/ui, ESLint, Prettier
-- [ ] next-intl с `messages/ru.json`, пустой `messages/kk.json`
-- [ ] `.env.example`, `README.md`
+- [x] Next.js с TypeScript strict, Tailwind, shadcn/ui, ESLint, Prettier
+- [x] next-intl с `messages/ru.json`, пустой `messages/kk.json`
+- [x] `.env.example`, `README.md`
+
+**Отличия от плана:** Next.js 16 (свежая версия, `proxy.ts` вместо middleware). Шрифт Inter вместо Geist: в Geist нет кириллицы. next-intl без префикса языка в адресе, язык задаётся в `src/i18n/request.ts`. Prettier не трогает `.md`.
 
 **Проверка:** `npm run dev` открывает пустую страницу на localhost:3000 с текстом из `ru.json`; `npm run lint` без ошибок.
 
