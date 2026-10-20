@@ -339,6 +339,7 @@ create unique index session_segments_one_open_per_session
 | `calc_session_amount(session_id, at?)` | Администратор | Сумма на момент `at` (по умолчанию сейчас), без записи |
 | `calc_play_amount(venue_id, segments, package_id?, at?)` | Участники | Ядро расчёта: сумма и строки чека по переданным отрезкам. Готово с этапа 3.1; `calc_session_amount` передаёт ей отрезки сеанса |
 | `find_tariff(venue_id, resource_kind, local_time)` | Участники | Тариф, который действует в этот местный момент, с учётом ночных интервалов и `priority` |
+| `tariff_week_grid(venue_id, resource_kind)` | Участники | Тариф на каждые полчаса недели через `find_tariff`, для сетки на экране тарифов |
 | `close_session(session_id, discount_amount?)` | Администратор | Закрывает отрезки, считает и записывает суммы, снимок тарифов; бронь → `completed` |
 | `void_session(session_id, reason)` | Владелец | Аннулирует сеанс, пишет в журнал |
 | `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; нужна открытая смена |

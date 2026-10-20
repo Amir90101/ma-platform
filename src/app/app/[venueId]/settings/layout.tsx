@@ -52,6 +52,12 @@ async function OwnerOnly({
           {t("home.hall")}
         </Link>
         <Link
+          href={`/app/${venueId}/settings/tariffs`}
+          className="hover:underline"
+        >
+          {t("home.tariffs")}
+        </Link>
+        <Link
           href={`/app/${venueId}/settings/staff`}
           className="hover:underline"
         >

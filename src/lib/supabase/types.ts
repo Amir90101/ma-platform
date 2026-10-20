@@ -258,6 +258,11 @@ isOneToOne: false
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"tariff_week_grid":
+{ Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_venue_id": string }; Returns: {
+              "minute": number,"price_per_hour": number,"tariff_id": string,"tariff_name": string,"weekday": number
+            }[]
+                           },
 "user_id_by_email":
 { Args: { "p_email": string }; Returns: string
                            },
