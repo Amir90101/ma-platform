@@ -39,15 +39,21 @@ async function VenueSettings({
   const supabase = await createClient();
 
   // Неверный uuid тоже даёт ошибку запроса — показываем «не найдено».
-  const [{ data: venue }, { data: photoRows }] = await Promise.all([
-    supabase.from("venues").select("*").eq("id", venueId).maybeSingle(),
-    supabase
-      .from("venue_photos")
-      .select("id, storage_path")
-      .eq("venue_id", venueId)
-      .order("sort")
-      .order("created_at"),
-  ]);
+  const [{ data: venue }, { data: photoRows }, { count: resourceCount }] =
+    await Promise.all([
+      supabase.from("venues").select("*").eq("id", venueId).maybeSingle(),
+      supabase
+        .from("venue_photos")
+        .select("id, storage_path")
+        .eq("venue_id", venueId)
+        .order("sort")
+        .order("created_at"),
+      supabase
+        .from("resources")
+        .select("id", { count: "exact", head: true })
+        .eq("venue_id", venueId)
+        .eq("is_active", true),
+    ]);
 
   if (!venue) return <p role="alert">{t("notFound")}</p>;
 
@@ -62,11 +68,11 @@ async function VenueSettings({
     .catch([])
     .parse(venue.working_hours);
 
-  // Шаги из сценария 1 в docs/USER_FLOWS.md; карта, тарифы и правила —
+  // Шаги из сценария 1 в docs/USER_FLOWS.md; тарифы, правила и публикация —
   // следующие этапы.
   const steps = [
     { key: "profile", state: "done" },
-    { key: "hall", state: "later" },
+    { key: "hall", state: resourceCount ? "done" : "todo" },
     { key: "tariffs", state: "later" },
     { key: "bookingRules", state: "later" },
     { key: "photos", state: photos.length ? "done" : "todo" },

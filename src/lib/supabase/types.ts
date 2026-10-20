@@ -189,6 +189,9 @@ isOneToOne: false
 "is_venue_owner":
 { Args: { "p_venue_id": string }; Returns: boolean
                            },
+"save_hall_layout":
+{ Args: { "p_hall_id": string,"p_objects": Json,"p_resources": Json }; Returns: undefined
+                           },
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
