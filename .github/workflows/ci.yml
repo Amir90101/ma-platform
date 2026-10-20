@@ -36,7 +36,7 @@ jobs:
           cache: npm
       - uses: supabase/setup-cli@v1
         with:
-          # Своя версия, а не latest: без запроса к API GitHub, который бывает
+          # Своя версия, а не latest: без запроса к API GitHub, который иногда
           # упирается в лимит, и с той же CLI, что локально.
           version: 2.121.0
       - name: Start Supabase
