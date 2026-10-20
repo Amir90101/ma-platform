@@ -302,6 +302,9 @@ create unique index session_segments_one_open_per_session
 
 - `is_venue_member(venue_id uuid) returns boolean` — пользователь состоит в организации заведения.
 - `is_venue_owner(venue_id uuid) returns boolean` — пользователь владелец этой организации.
+- `is_org_member(org_id uuid)` и `is_org_owner(org_id uuid)` — то же для организации. Нужны политикам `organizations`, `members` и `venues`, где заведения ещё нет.
+
+Владелец попадает в `members` с ролью `owner` автоматически: триггер `organizations_add_owner_as_member` после создания организации. Через политики владелец добавляет, меняет и удаляет только администраторов, свою строку `owner` он изменить не может.
 
 | Таблица | Чтение | Запись |
 | --- | --- | --- |
@@ -311,7 +314,7 @@ create unique index session_segments_one_open_per_session
 | customers, bookings, sessions, session_segments, session_items, payments, shifts | Участники | Только через RPC |
 | audit_log | Владелец | Никто, только триггеры |
 
-Роль `anon` не читает ни одну таблицу напрямую. Публичная страница работает только через `get_public_venue` и `get_availability`.
+Роль `anon` не читает ни одну таблицу напрямую: права на таблицы у неё отозваны (`revoke all`), запрос получает ошибку `42501`, а не пустой ответ. Публичная страница работает только через `get_public_venue` и `get_availability`.
 
 ## RPC-функции
 
@@ -359,4 +362,4 @@ create unique index session_segments_one_open_per_session
 
 ## Seed
 
-`supabase/seed.sql` создаёт демо-бильярдную «Демо Бильярд» со slug `demo-billiards`: один зал, 6 столов пул и 2 русских, тарифы «Будни день», «Вечер», «Выходные», владельца `owner@demo.local` и администратора `admin@demo.local` с паролем `demo12345`.
+`supabase/seed.sql` создаёт демо-бильярдную «Демо Бильярд» со slug `demo-billiards`: один зал, 6 столов пул и 2 русских, тарифы «Будни день», «Вечер», «Выходные», владельца `owner@demo.local` и администратора `admin@demo.local` с паролем `demo12345`. Второе заведение «Демо PS-клуб» (`demo-ps-club`, не опубликовано) с владельцем `owner2@demo.local` нужно тестам RLS. id в seed фиксированные, на них ссылаются тесты. Зал, столы и тарифы добавляются в seed на этапах 2 и 3.
