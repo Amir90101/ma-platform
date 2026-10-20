@@ -78,7 +78,7 @@
 | --- | --- | --- |
 | id | uuid | |
 | venue_id | uuid not null | → venues |
-| storage_path | text not null | `venue-photos/{venue_id}/{uuid}.jpg` |
+| storage_path | text not null | Путь в бакете `venue-photos`: `{venue_id}/{uuid}.{jpg,png,webp}` |
 | sort | int not null default 0 | |
 
 ### halls
@@ -358,7 +358,7 @@ create unique index session_segments_one_open_per_session
 
 ## Storage
 
-Бакет `venue-photos`, публичное чтение. Загрузка и удаление только участникам заведения, путь `{venue_id}/{uuid}.jpg`. Размер файла до 5 МБ, типы `image/jpeg`, `image/png`, `image/webp`.
+Бакет `venue-photos`, публичное чтение. Загрузка и удаление только владельцу заведения, как и строки `venue_photos`; участники видят объекты своего заведения (Storage API требует `select` для удаления). Путь `{venue_id}/{uuid}.{jpg,png,webp}`, id заведения из первой папки достаёт `venue_photo_venue_id(name)`. Размер файла до 5 МБ, типы `image/jpeg`, `image/png`, `image/webp`. Браузер загружает файл прямо в Storage, затем пишет строку в `venue_photos`.
 
 ## Seed
 

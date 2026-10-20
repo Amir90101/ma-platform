@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import type { AuthError } from "@supabase/supabase-js";
+import { siteUrl } from "@/lib/site-url";
 import { createClient } from "@/lib/supabase/server";
 import {
   type FieldErrors,
@@ -48,10 +49,6 @@ function textValues(formData: FormData): AuthFormState["values"] {
     email: String(formData.get("email") ?? ""),
     fullName: String(formData.get("fullName") ?? ""),
   };
-}
-
-function siteUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
 
 export async function login(
