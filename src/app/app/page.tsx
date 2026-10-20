@@ -53,7 +53,7 @@ async function VenueList() {
         {venues.map((venue) => (
           <li key={venue.id}>
             <Link
-              href={`/app/${venue.id}/settings`}
+              href={`/app/${venue.id}`}
               className="hover:bg-muted flex items-center justify-between gap-4 px-4 py-3"
             >
               <span>
@@ -62,7 +62,7 @@ async function VenueList() {
                   {tVenue(`types.${venue.type}`)} · {venue.city}
                 </span>
               </span>
-              <span className="text-sm">{t("openSettings")}</span>
+              <span className="text-sm">{t("openVenue")}</span>
             </Link>
           </li>
         ))}

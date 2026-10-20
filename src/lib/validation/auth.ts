@@ -5,21 +5,25 @@ import { z } from "zod";
 
 export const PASSWORD_MIN_LENGTH = 8;
 
-const email = z.string().trim().toLowerCase().email("emailInvalid");
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .email("emailInvalid");
 const password = z.string().min(PASSWORD_MIN_LENGTH, "passwordTooShort");
 
 export const loginSchema = z.object({
-  email,
+  email: emailSchema,
   password: z.string().min(1, "passwordRequired"),
 });
 
 export const registerSchema = z.object({
   fullName: z.string().trim().min(1, "nameRequired").max(100, "nameTooLong"),
-  email,
+  email: emailSchema,
   password,
 });
 
-export const forgotPasswordSchema = z.object({ email });
+export const forgotPasswordSchema = z.object({ email: emailSchema });
 
 export const resetPasswordSchema = z
   .object({ password, confirmPassword: z.string() })
