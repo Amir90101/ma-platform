@@ -75,6 +75,12 @@ async function VenueHome({
             >
               {t("home.staff")}
             </Link>
+            <Link
+              href={`/app/${venue.id}/audit`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("home.audit")}
+            </Link>
           </>
         )}
       </nav>
