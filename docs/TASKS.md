@@ -19,7 +19,7 @@
 
 - [x] Node.js 20 (стоит v20.20.2)
 - [x] Docker Desktop (установлен, должен быть запущен перед `supabase start`)
-- [ ] Supabase CLI: `brew install supabase/tap/supabase`
+- [x] Supabase CLI: `brew install supabase/tap/supabase`
 
 ## Этап 0. Подготовка
 
@@ -35,8 +35,10 @@
 
 ### 0.2 Локальная база
 
-- [ ] Supabase CLI, `supabase init`, расширения `btree_gist`, `pg_cron`, `pgcrypto` в первой миграции
-- [ ] Клиенты Supabase для браузера и сервера в `src/lib/supabase`
+- [x] Supabase CLI, `supabase init`, расширения `btree_gist`, `pg_cron`, `pgcrypto` в первой миграции
+- [x] Клиенты Supabase для браузера и сервера в `src/lib/supabase`
+
+**Отличия от плана:** RPC `server_now` создана сейчас, а не на этапе 4: служебная страница `/health` вызывает её, чтобы проверить базу. В `supabase/config.toml` выключена локальная аналитика логов: её контейнер не поднимается и мешает `supabase start`.
 
 **Проверка:** `supabase start` и `supabase db reset` проходят без ошибок; служебная страница приложения делает запрос в базу и показывает «база доступна».
 
@@ -141,7 +143,7 @@
 ### 4.1 Смены и сеансы в базе
 
 - [ ] Таблицы `sessions`, `session_segments`, `session_items`, `customers`, `shifts` с RLS
-- [ ] RPC: `start_session`, `pause_session`, `resume_session`, `transfer_session`, `close_session`, `void_session`, `open_shift`, `close_shift`, `server_now`
+- [ ] RPC: `start_session`, `pause_session`, `resume_session`, `transfer_session`, `close_session`, `void_session`, `open_shift`, `close_shift` (`server_now` уже есть с этапа 0.2)
 
 **Проверка:** pgTAP: второй сеанс на занятом столе отклоняется; пауза и продолжение меняют отрезки; перенос на занятый стол отклоняется; `close_session` пишет суммы и `tariff_snapshot`; изменение тарифа не меняет закрытый сеанс.
 
