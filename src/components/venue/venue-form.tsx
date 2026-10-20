@@ -18,6 +18,7 @@ import {
   WEEKDAYS,
   type WorkingDay,
 } from "@/lib/validation/venue";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 export type VenueFormValues = {
   type: VenueType | "";
@@ -66,6 +67,7 @@ export function VenueForm({
 }: Props) {
   const t = useTranslations("Venue");
   const [state, formAction, pending] = useActionState(action, {});
+  const hydrated = useHydrated();
   const errors = state.fieldErrors ?? {};
 
   const [name, setName] = useState(initial.name);
@@ -184,7 +186,7 @@ export function VenueForm({
         </p>
       )}
 
-      <Button type="submit" size="lg" disabled={pending}>
+      <Button type="submit" size="lg" disabled={pending || !hydrated}>
         {mode === "create"
           ? pending
             ? t("creating")

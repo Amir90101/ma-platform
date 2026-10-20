@@ -23,6 +23,21 @@ import type { EditorItem } from "./hall-editor";
 
 type HallSize = { width: number; height: number };
 
+// Статус стола на рабочем экране и вторая строка подписи (таймер).
+export type ItemStatus = {
+  tone: "free" | "busy" | "paused";
+  caption?: string;
+};
+
+const STATUS_STYLE: Record<
+  ItemStatus["tone"],
+  { fill: string; stroke: string; text: string }
+> = {
+  free: { fill: "#dcfce7", stroke: "#15803d", text: "#14532d" },
+  busy: { fill: "#fee2e2", stroke: "#b91c1c", text: "#7f1d1d" },
+  paused: { fill: "#fef3c7", stroke: "#b45309", text: "#78350f" },
+};
+
 const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
 
 const OBJECT_STYLE: Record<
@@ -43,6 +58,7 @@ export default function HallCanvas({
   items,
   selectedKey,
   editable,
+  statuses,
   onSelect,
   onChange,
 }: {
@@ -50,6 +66,7 @@ export default function HallCanvas({
   items: EditorItem[];
   selectedKey: string | null;
   editable: boolean;
+  statuses?: Record<string, ItemStatus>;
   onSelect: (key: string | null) => void;
   onChange: (key: string, patch: Partial<Box & { rotation: number }>) => void;
 }) {
@@ -167,7 +184,11 @@ export default function HallCanvas({
                   finishTransform(item, nodes.current.get(item.key)!)
                 }
               >
-                <ItemShape item={item} selected={item.key === selectedKey} />
+                <ItemShape
+                  item={item}
+                  selected={item.key === selectedKey}
+                  status={statuses?.[item.key]}
+                />
               </Group>
             ))}
             {editable && (
@@ -195,9 +216,11 @@ export default function HallCanvas({
 function ItemShape({
   item,
   selected,
+  status,
 }: {
   item: EditorItem;
   selected: boolean;
+  status?: ItemStatus;
 }) {
   const { w, h } = item;
   let fill: string | undefined;
@@ -212,6 +235,10 @@ function ItemShape({
     dash = item.is_active ? undefined : [10, 6];
     textColor = item.is_active ? "#14532d" : "#6b7280";
     text = item.name;
+    if (status) {
+      ({ fill, stroke, text: textColor } = STATUS_STYLE[status.tone]);
+      if (status.caption) text = `${item.name}\n${status.caption}`;
+    }
   } else {
     const style = OBJECT_STYLE[item.kind];
     fill = style.fill;

@@ -6,6 +6,7 @@ import type { InviteFormState } from "@/app/app/staff-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 export function InviteForm({
   action,
@@ -17,6 +18,7 @@ export function InviteForm({
 }) {
   const t = useTranslations("Staff");
   const [state, formAction, pending] = useActionState(action, {});
+  const hydrated = useHydrated();
 
   return (
     // После успешного приглашения форма очищается — так и задумано.
@@ -31,7 +33,7 @@ export function InviteForm({
           aria-invalid={state.error === "emailInvalid" ? true : undefined}
           className="sm:flex-1"
         />
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" disabled={pending || !hydrated}>
           {pending ? t("inviting") : t("invite")}
         </Button>
       </div>
