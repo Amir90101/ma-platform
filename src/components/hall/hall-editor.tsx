@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { saveHallLayout } from "@/app/app/hall-actions";
@@ -23,7 +24,13 @@ import type {
   LayoutObject,
   LayoutResource,
 } from "@/lib/validation/hall";
-import { RESOURCE_DEFAULTS, type ResourceKind } from "@/lib/venue-types";
+import {
+  HALL_OBJECT_DEFAULTS,
+  type HallObjectKind,
+  RESOURCE_DEFAULTS,
+  type ResourceKind,
+} from "@/lib/venue-types";
+import { NewHallForm } from "./new-hall-form";
 
 // Konva работает только в браузере.
 const HallCanvas = dynamic(() => import("./hall-canvas"), {
@@ -85,19 +92,24 @@ function toLayout(items: EditorItem[]): Layout {
   return layout;
 }
 
+const OBJECT_KINDS = Object.keys(HALL_OBJECT_DEFAULTS) as HallObjectKind[];
+
 export function HallEditor({
   venueId,
   hall,
+  halls,
   initialLayout,
   resourceKinds,
 }: {
   venueId: string;
   hall: Hall;
+  halls: { id: string; name: string }[];
   initialLayout: Layout;
   resourceKinds: ResourceKind[];
 }) {
   const t = useTranslations("Hall");
   const [items, setItems] = useState(() => toItems(initialLayout));
+  const [hallName, setHallName] = useState(hall.name);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; error?: string }>();
@@ -151,6 +163,27 @@ export function HallEditor({
     setStatus(undefined);
   }
 
+  function addObject(kind: HallObjectKind) {
+    const d = HALL_OBJECT_DEFAULTS[kind];
+    const item: EditorItem = {
+      type: "object",
+      key: crypto.randomUUID(),
+      kind,
+      // У стены подписи нет, остальным — название вида: «Бар», «Вход».
+      label: kind === "wall" ? null : t(`objectKinds.${kind}`),
+      ...freeSpot(d, items, hall),
+      w: d.w,
+      h: d.h,
+      rotation: 0,
+    };
+    setItems((prev) => [...prev, item]);
+    setSelectedKey(item.key);
+    setDirty(true);
+    setStatus(undefined);
+  }
+
+  const confirmLeave = () => !dirty || window.confirm(t("leaveUnsaved"));
+
   function remove(key: string) {
     setItems((prev) => prev.filter((i) => i.key !== key));
     setSelectedKey(null);
@@ -160,7 +193,12 @@ export function HallEditor({
 
   function save() {
     startSaving(async () => {
-      const result = await saveHallLayout(venueId, hall.id, toLayout(items));
+      const result = await saveHallLayout(
+        venueId,
+        hall.id,
+        hallName,
+        toLayout(items),
+      );
       if (result.ok) {
         setItems(toItems(result.layout));
         setSelectedKey(null);
@@ -174,9 +212,47 @@ export function HallEditor({
 
   return (
     <div className="grid gap-4">
+      <nav
+        aria-label={t("halls")}
+        className="flex flex-wrap items-center gap-2 border-b pb-3"
+      >
+        {halls.map((h) => (
+          <Link
+            key={h.id}
+            href={`/app/${venueId}/settings/hall?hall=${h.id}`}
+            aria-current={h.id === hall.id ? "page" : undefined}
+            onClick={(e) => {
+              if (h.id !== hall.id && !confirmLeave()) e.preventDefault();
+            }}
+            className="hover:bg-muted aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground rounded-md px-3 py-1.5 text-sm"
+          >
+            {h.id === hall.id ? hallName || h.name : h.name}
+          </Link>
+        ))}
+        <NewHallForm venueId={venueId} confirmLeave={confirmLeave} />
+      </nav>
+
+      <div className="grid max-w-xs gap-1">
+        <Label htmlFor="hall-name">{t("hallName")}</Label>
+        <Input
+          id="hall-name"
+          value={hallName}
+          maxLength={50}
+          onChange={(e) => {
+            setHallName(e.target.value);
+            setDirty(true);
+            setStatus(undefined);
+          }}
+        />
+      </div>
+
       <p className="text-muted-foreground text-sm">{t("hint")}</p>
 
-      <div className="flex flex-wrap gap-2" role="toolbar">
+      <div
+        className="flex flex-wrap gap-2"
+        role="toolbar"
+        aria-label={t("add")}
+      >
         {resourceKinds.map((kind) => (
           <Button
             key={kind}
@@ -185,6 +261,23 @@ export function HallEditor({
             onClick={() => addResource(kind)}
           >
             + {t(`resourceKinds.${kind}`)}
+          </Button>
+        ))}
+      </div>
+      <div
+        className="flex flex-wrap gap-2"
+        role="toolbar"
+        aria-label={t("decor")}
+      >
+        {OBJECT_KINDS.map((kind) => (
+          <Button
+            key={kind}
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => addObject(kind)}
+          >
+            + {t(`objectKinds.${kind}`)}
           </Button>
         ))}
       </div>
