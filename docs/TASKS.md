@@ -164,8 +164,16 @@
 
 ### 4.1 Смены и сеансы в базе
 
-- [ ] Таблицы `sessions`, `session_segments`, `session_items`, `customers`, `shifts` с RLS
-- [ ] RPC: `start_session`, `pause_session`, `resume_session`, `transfer_session`, `close_session`, `void_session`, `open_shift`, `close_shift` (`server_now` уже есть с этапа 0.2)
+- [x] Таблицы `sessions`, `session_segments`, `session_items`, `customers`, `shifts` с RLS
+- [x] RPC: `start_session`, `pause_session`, `resume_session`, `transfer_session`, `close_session`, `void_session`, `open_shift`, `close_shift` (`server_now` уже есть с этапа 0.2)
+
+**Отличия от плана:**
+- RPC объявлены `security definer` и сами проверяют участника или владельца. Прав на запись в эти таблицы у пользователей нет, иначе правила расчёта можно было бы обойти прямой записью. `docs/ARCHITECTURE.md` дополнен.
+- `start_session` принимает телефон и имя гостя и сама находит или создаёт запись в `customers`. Запуск по брони добавит этап 5: тогда появится внешний ключ `sessions.booking_id`.
+- Добавлена `calc_session_amount(session_id, at)`: собирает отрезки сеанса и вызывает `calc_play_amount` из 3.1. Кроме суммы времени, она отдаёт товары, скидку и итог.
+- Новые колонки: в `sessions` — `started_at` и `void_reason`, в `session_items` — `venue_id` для RLS.
+- Одна открытая смена на заведение, это проверяет уникальный индекс. `close_shift` пока считает `expected_cash` равным наличным на открытии; оплаты добавит 4.2.
+- Тест на «двумя одновременными вызовами» в pgTAP проверяет второй вызов. Гонку отсекает уникальный индекс открытых отрезков на ресурс.
 
 **Проверка:** pgTAP: второй сеанс на занятом столе отклоняется; пауза и продолжение меняют отрезки; перенос на занятый стол отклоняется; `close_session` пишет суммы и `tariff_snapshot`; изменение тарифа не меняет закрытый сеанс.
 

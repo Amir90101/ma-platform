@@ -197,13 +197,15 @@
 | status | session_status not null | |
 | expected_end_at | timestamptz | Ожидаемое окончание; блокирует онлайн-бронь до этого времени |
 | started_by | uuid not null | |
+| started_at | timestamptz not null default now() | |
 | closed_by | uuid | |
 | closed_at | timestamptz | |
 | time_amount | int | Сумма за время, считается при закрытии |
 | items_amount | int | Сумма товаров |
 | discount_amount | int not null default 0 | |
 | total_amount | int | `time_amount + items_amount - discount_amount` |
-| tariff_snapshot | jsonb | Тарифы и пакет на момент закрытия |
+| tariff_snapshot | jsonb | Строки чека по тарифам, пакет и минуты на момент закрытия |
+| void_reason | text | Причина аннулирования |
 
 ### session_segments
 
@@ -224,6 +226,7 @@
 | Поле | Тип | Примечание |
 | --- | --- | --- |
 | id | uuid | |
+| venue_id | uuid not null | → venues; для RLS |
 | session_id | uuid not null | → sessions |
 | name | text not null | |
 | price | int not null | |
@@ -315,6 +318,8 @@ create unique index session_segments_one_open_per_session
 | customers, bookings, sessions, session_segments, session_items, payments, shifts | Участники | Только через RPC |
 | audit_log | Владелец | Никто, только триггеры |
 
+RPC для таблиц «только через RPC» объявлены `security definer`: прямых прав на запись у `authenticated` нет, поэтому каждая функция сама проверяет `is_venue_member` (аннулирование — `is_venue_owner`). Ошибки бизнес-правил приходят текстом: `resource_busy`, `session_not_active`, `shift_already_open`, `no_tariff` и т. п.
+
 Роль `anon` не читает ни одну таблицу напрямую: права на таблицы у неё отозваны (`revoke all`), запрос получает ошибку `42501`, а не пустой ответ. Публичная страница работает только через `get_public_venue` и `get_availability`.
 
 ## RPC-функции
@@ -333,7 +338,7 @@ create unique index session_segments_one_open_per_session
 | `get_day_bookings(venue_id, date)` | Администратор | Брони на день с числом прошлых неявок каждого гостя |
 | `create_manual_booking(...)` | Администратор | Бронь по звонку |
 | `set_booking_status(booking_id, status, reason)` | Администратор | Отмена, неявка |
-| `start_session(resource_id, booking_id?, customer_id?, package_id?, expected_end_at?)` | Администратор | Сеанс и первый отрезок `play`; бронь → `arrived` |
+| `start_session(resource_id, expected_end_at?, package_id?, customer_phone?, customer_name?)` | Администратор | Сеанс и первый отрезок `play`; гостя находит или создаёт по телефону. Запуск по брони (бронь → `arrived`) добавит этап 5 |
 | `pause_session(session_id)` / `resume_session(session_id)` | Администратор | Закрывает текущий отрезок, открывает новый |
 | `transfer_session(session_id, resource_id)` | Администратор | Перенос на другой ресурс |
 | `calc_session_amount(session_id, at?)` | Администратор | Сумма на момент `at` (по умолчанию сейчас), без записи |
@@ -343,7 +348,7 @@ create unique index session_segments_one_open_per_session
 | `close_session(session_id, discount_amount?)` | Администратор | Закрывает отрезки, считает и записывает суммы, снимок тарифов; бронь → `completed` |
 | `void_session(session_id, reason)` | Владелец | Аннулирует сеанс, пишет в журнал |
 | `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; нужна открытая смена |
-| `open_shift(opening_cash)` / `close_shift(shift_id, closing_cash)` | Администратор | Смена; при закрытии считает `expected_cash` |
+| `open_shift(venue_id, opening_cash)` / `close_shift(shift_id, closing_cash)` | Администратор | Смена; при закрытии считает `expected_cash` |
 
 ### Как считает `calc_session_amount`
 

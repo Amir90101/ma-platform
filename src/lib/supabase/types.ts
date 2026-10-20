@@ -23,7 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "hall_objects": {
+            "customers": {
+                  Row: {
+                    "consent_at": string | null,"created_at": string,"id": string,"name": string | null,"notes": string | null,"phone": string,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "consent_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string | null,"notes"?: string | null,"phone": string,"venue_id": string
+                  }
+                  Update: {
+                    "consent_at"?: string | null,"created_at"?: string,"id"?: string,"name"?: string | null,"notes"?: string | null,"phone"?: string,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "customers_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"hall_objects": {
                   Row: {
                     "created_at": string,"h": number,"hall_id": string,"id": string,"kind": Database["public"]['Enums']["hall_object_kind"],"label": string | null,"rotation": number,"w": number,"x": number,"y": number
                   }
@@ -143,6 +163,116 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"session_items": {
+                  Row: {
+                    "created_at": string,"id": string,"name": string,"price": number,"qty": number,"session_id": string,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"name": string,"price": number,"qty"?: number,"session_id": string,"venue_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"name"?: string,"price"?: number,"qty"?: number,"session_id"?: string,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "session_items_session_id_fkey"
+      columns: ["session_id"]
+isOneToOne: false
+      referencedRelation: "sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "session_items_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"session_segments": {
+                  Row: {
+                    "ended_at": string | null,"id": string,"kind": Database["public"]['Enums']["segment_kind"],"resource_id": string,"session_id": string,"started_at": string,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ended_at"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["segment_kind"],"resource_id": string,"session_id": string,"started_at": string,"venue_id": string
+                  }
+                  Update: {
+                    "ended_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["segment_kind"],"resource_id"?: string,"session_id"?: string,"started_at"?: string,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "session_segments_resource_id_fkey"
+      columns: ["resource_id"]
+isOneToOne: false
+      referencedRelation: "resources"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "session_segments_session_id_fkey"
+      columns: ["session_id"]
+isOneToOne: false
+      referencedRelation: "sessions"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "session_segments_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sessions": {
+                  Row: {
+                    "booking_id": string | null,"closed_at": string | null,"closed_by": string | null,"customer_id": string | null,"discount_amount": number,"expected_end_at": string | null,"id": string,"items_amount": number | null,"package_id": string | null,"started_at": string,"started_by": string,"status": Database["public"]['Enums']["session_status"],"tariff_snapshot": Json | null,"time_amount": number | null,"total_amount": number | null,"venue_id": string,"void_reason": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "booking_id"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"customer_id"?: string | null,"discount_amount"?: number,"expected_end_at"?: string | null,"id"?: string,"items_amount"?: number | null,"package_id"?: string | null,"started_at"?: string,"started_by": string,"status"?: Database["public"]['Enums']["session_status"],"tariff_snapshot"?: Json | null,"time_amount"?: number | null,"total_amount"?: number | null,"venue_id": string,"void_reason"?: string | null
+                  }
+                  Update: {
+                    "booking_id"?: string | null,"closed_at"?: string | null,"closed_by"?: string | null,"customer_id"?: string | null,"discount_amount"?: number,"expected_end_at"?: string | null,"id"?: string,"items_amount"?: number | null,"package_id"?: string | null,"started_at"?: string,"started_by"?: string,"status"?: Database["public"]['Enums']["session_status"],"tariff_snapshot"?: Json | null,"time_amount"?: number | null,"total_amount"?: number | null,"venue_id"?: string,"void_reason"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "sessions_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sessions_package_id_fkey"
+      columns: ["package_id"]
+isOneToOne: false
+      referencedRelation: "packages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sessions_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"shifts": {
+                  Row: {
+                    "closed_at": string | null,"closed_by": string | null,"closing_cash": number | null,"expected_cash": number | null,"id": string,"opened_at": string,"opened_by": string,"opening_cash": number,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"closing_cash"?: number | null,"expected_cash"?: number | null,"id"?: string,"opened_at"?: string,"opened_by": string,"opening_cash": number,"venue_id": string
+                  }
+                  Update: {
+                    "closed_at"?: string | null,"closed_by"?: string | null,"closing_cash"?: number | null,"expected_cash"?: number | null,"id"?: string,"opened_at"?: string,"opened_by"?: string,"opening_cash"?: number,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shifts_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tariffs": {
                   Row: {
                     "created_at": string,"id": string,"is_active": boolean,"name": string,"price_per_hour": number,"priority": number,"resource_kinds": (Database["public"]['Enums']["resource_kind"])[],"time_from": string,"time_to": string,"venue_id": string,"weekdays": (number)[]
@@ -212,6 +342,46 @@ isOneToOne: false
             "calc_play_amount":
 { Args: { "p_at"?: string,"p_package_id"?: string,"p_segments": Json,"p_venue_id": string }; Returns: Json
                            },
+"calc_session_amount":
+{ Args: { "p_at"?: string,"p_session_id": string }; Returns: Json
+                           },
+"close_open_segment":
+{ Args: { "p_at": string,"p_session_id": string }; Returns: {
+              "ended_at": string | null,
+"id": string,
+"kind": Database["public"]['Enums']["segment_kind"],
+"resource_id": string,
+"session_id": string,
+"started_at": string,
+"venue_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "session_segments"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"close_session":
+{ Args: { "p_discount_amount"?: number,"p_session_id": string }; Returns: Json
+                           },
+"close_shift":
+{ Args: { "p_closing_cash": number,"p_shift_id": string }; Returns: {
+              "closed_at": string | null,
+"closed_by": string | null,
+"closing_cash": number | null,
+"expected_cash": number | null,
+"id": string,
+"opened_at": string,
+"opened_by": string,
+"opening_cash": number,
+"venue_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "shifts"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "find_tariff":
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_local": string,"p_venue_id": string }; Returns: {
               "created_at": string,
@@ -252,26 +422,73 @@ isOneToOne: false
 "is_venue_owner":
 { Args: { "p_venue_id": string }; Returns: boolean
                            },
+"lock_session":
+{ Args: { "p_session_id": string }; Returns: {
+              "booking_id": string | null,
+"closed_at": string | null,
+"closed_by": string | null,
+"customer_id": string | null,
+"discount_amount": number,
+"expected_end_at": string | null,
+"id": string,
+"items_amount": number | null,
+"package_id": string | null,
+"started_at": string,
+"started_by": string,
+"status": Database["public"]['Enums']["session_status"],
+"tariff_snapshot": Json | null,
+"time_amount": number | null,
+"total_amount": number | null,
+"venue_id": string,
+"void_reason": string | null
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "sessions"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"open_segment":
+{ Args: { "p_at": string,"p_kind": Database["public"]['Enums']["segment_kind"],"p_resource_id": string,"p_session": Omit<Database["public"]['Tables']["sessions"]['Row'], Database["public"]['Tables']["sessions"]['ComputedFields']> }; Returns: undefined
+                           },
+"open_shift":
+{ Args: { "p_opening_cash": number,"p_venue_id": string }; Returns: string
+                           },
+"pause_session":
+{ Args: { "p_session_id": string }; Returns: undefined
+                           },
+"resume_session":
+{ Args: { "p_session_id": string }; Returns: undefined
+                           },
 "save_hall_layout":
 { Args: { "p_hall_id": string,"p_objects": Json,"p_resources": Json }; Returns: undefined
                            },
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"start_session":
+{ Args: { "p_customer_name"?: string,"p_customer_phone"?: string,"p_expected_end_at"?: string,"p_package_id"?: string,"p_resource_id": string }; Returns: string
+                           },
 "tariff_week_grid":
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_venue_id": string }; Returns: {
               "minute": number,"price_per_hour": number,"tariff_id": string,"tariff_name": string,"weekday": number
             }[]
+                           },
+"transfer_session":
+{ Args: { "p_resource_id": string,"p_session_id": string }; Returns: undefined
                            },
 "user_id_by_email":
 { Args: { "p_email": string }; Returns: string
                            },
 "venue_photo_venue_id":
 { Args: { "p_name": string }; Returns: string
+                           },
+"void_session":
+{ Args: { "p_reason": string,"p_session_id": string }; Returns: undefined
                            }
           }
           Enums: {
-            "hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
+            "hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","segment_kind": "play"|"pause","session_status": "active"|"paused"|"closed"|"voided","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -391,7 +608,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
+            "hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"segment_kind": ["play", "pause"],"session_status": ["active", "paused", "closed", "voided"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
           }
         }
 } as const
