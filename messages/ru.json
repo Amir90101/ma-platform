@@ -159,7 +159,8 @@
       "hall": "Редактор карты",
       "workHall": "Карта зала",
       "tariffs": "Тарифы",
-      "audit": "Журнал действий"
+      "audit": "Журнал действий",
+      "bookings": "Брони"
     }
   },
   "Staff": {
@@ -261,7 +262,8 @@
     "viewHint": "Нажмите на стол на карте или в списке, чтобы запустить сеанс или управлять им.",
     "openEditor": "Открыть редактор",
     "noHallView": "Карта ещё не нарисована.",
-    "resourcesTitle": "Столы и места"
+    "resourcesTitle": "Столы и места",
+    "bookingsLink": "Брони"
   },
   "Tariffs": {
     "title": "Тарифы и пакеты",
@@ -433,6 +435,75 @@
       "cash": "наличные",
       "kaspi": "Kaspi",
       "card": "карта"
+    }
+  },
+  "Bookings": {
+    "title": "Брони",
+    "hint": "Брони на день по столам. Ночные часы до закрытия относятся к этому дню.",
+    "prevDay": "← Предыдущий день",
+    "nextDay": "Следующий день →",
+    "today": "Сегодня",
+    "date": "Дата",
+    "show": "Показать",
+    "empty": "На этот день броней нет.",
+    "count": "{count, plural, one {# бронь} few {# брони} many {# броней} other {# брони}}",
+    "live": "Обновляется сама",
+    "connecting": "Подключаемся к обновлениям…",
+    "newTitle": "Бронь по звонку",
+    "resource": "Стол",
+    "start": "Начало",
+    "end": "Конец",
+    "endHint": "Конец раньше начала — бронь до следующего утра.",
+    "guestName": "Имя гостя",
+    "guestPhone": "Телефон гостя",
+    "guests": "Гостей",
+    "comment": "Комментарий",
+    "create": "Забронировать",
+    "creating": "Бронируем…",
+    "created": "Бронь создана: {resource}, {from}–{to}",
+    "conflict": "Время занято: бронь {name}, {from}–{to}",
+    "conflictNoName": "Время занято другой бронью, {from}–{to}",
+    "status": {
+      "confirmed": "Подтверждена",
+      "arrived": "Пришёл",
+      "completed": "Завершена",
+      "cancelled": "Отменена",
+      "no_show": "Не пришёл"
+    },
+    "source": {
+      "online": "онлайн",
+      "phone": "по звонку",
+      "manual": "на месте"
+    },
+    "guestsCount": "{count, plural, one {# гость} few {# гостя} many {# гостей} other {# гостя}}",
+    "noName": "Без имени",
+    "noShows": "Раньше не пришёл: {count, plural, one {# раз} few {# раза} many {# раз} other {# раза}}",
+    "cancelledByGuest": "Отменил гость",
+    "cancelReason": "Причина: {reason}",
+    "noShow": "Не пришёл",
+    "cancel": "Отменить",
+    "cancelReasonLabel": "Причина отмены",
+    "confirmCancel": "Отменить бронь",
+    "back": "Назад",
+    "errors": {
+      "resourceRequired": "Выберите стол",
+      "timeFormat": "Время в формате ЧЧ:ММ",
+      "timeEqual": "Конец совпадает с началом",
+      "phoneRequired": "Укажите телефон гостя",
+      "phoneFormat": "Телефон в формате +7 700 000 00 00",
+      "guestsFormat": "Число гостей — от 1 до 100",
+      "tooLong": "Слишком длинно",
+      "booking_overlap": "Время занято другой бронью",
+      "booking_in_past": "Бронь уже в прошлом",
+      "booking_time_invalid": "Конец брони должен быть позже начала",
+      "booking_not_found": "Бронь не найдена",
+      "booking_not_confirmed": "Бронь уже не ждёт гостя",
+      "booking_status_invalid": "Так изменить бронь нельзя",
+      "phone_required": "Укажите телефон гостя",
+      "reason_required": "Укажите причину",
+      "resource_not_found": "Стол не найден",
+      "resource_inactive": "Стол выключен",
+      "unknown": "Не получилось. Попробуйте ещё раз."
     }
   }
 }

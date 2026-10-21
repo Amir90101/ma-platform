@@ -90,14 +90,22 @@ async function HallViewContent({
           <h1 className="text-2xl font-semibold">{venue.name}</h1>
           <p className="text-muted-foreground text-sm">{t("viewHint")}</p>
         </div>
-        {isOwner && (
+        <div className="flex gap-4">
           <Link
-            href={`/app/${venue.id}/settings/hall${hall ? `?hall=${hall.id}` : ""}`}
+            href={`/app/${venue.id}/bookings`}
             className="text-sm hover:underline"
           >
-            {t("openEditor")}
+            {t("bookingsLink")}
           </Link>
-        )}
+          {isOwner && (
+            <Link
+              href={`/app/${venue.id}/settings/hall${hall ? `?hall=${hall.id}` : ""}`}
+              className="text-sm hover:underline"
+            >
+              {t("openEditor")}
+            </Link>
+          )}
+        </div>
       </div>
       {hall ? (
         <HallView
