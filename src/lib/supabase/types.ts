@@ -45,14 +45,14 @@ isOneToOne: false
                   ]
                 },"bookings": {
                   Row: {
-                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"created_ip": unknown,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"manage_token": string,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string
+                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"created_ip": unknown,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"manage_token": string,"package_id": string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "blocked_until": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id": string,"ends_at": string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id": string
+                    "blocked_until": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id": string,"ends_at": string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"package_id"?: string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id": string
                   }
                   Update: {
-                    "blocked_until"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id"?: string,"ends_at"?: string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"resource_id"?: string,"source"?: Database["public"]['Enums']["booking_source"],"starts_at"?: string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id"?: string
+                    "blocked_until"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id"?: string,"ends_at"?: string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"package_id"?: string | null,"resource_id"?: string,"source"?: Database["public"]['Enums']["booking_source"],"starts_at"?: string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id"?: string
                   }
                   Relationships: [
                     {
@@ -60,6 +60,12 @@ isOneToOne: false
       columns: ["customer_id"]
 isOneToOne: false
       referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "bookings_package_id_fkey"
+      columns: ["package_id"]
+isOneToOne: false
+      referencedRelation: "packages"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "bookings_resource_id_fkey"
@@ -491,10 +497,10 @@ isOneToOne: false
         isSetofReturn: false
       } },
 "create_manual_booking":
-{ Args: { "p_comment"?: string,"p_customer_name"?: string,"p_customer_phone": string,"p_ends_at": string,"p_guests"?: number,"p_resource_id": string,"p_source"?: Database["public"]['Enums']["booking_source"],"p_starts_at": string }; Returns: string
+{ Args: { "p_comment"?: string,"p_customer_name"?: string,"p_customer_phone": string,"p_ends_at": string,"p_guests"?: number,"p_package_id"?: string,"p_resource_id": string,"p_source"?: Database["public"]['Enums']["booking_source"],"p_starts_at": string }; Returns: string
                            },
 "create_public_booking":
-{ Args: { "p_comment"?: string,"p_duration_min": number,"p_guests"?: number,"p_ip"?: unknown,"p_max_active_per_ip"?: number,"p_max_active_per_phone"?: number,"p_name": string,"p_phone": string,"p_resource_id": string,"p_starts_at": string }; Returns: Json
+{ Args: { "p_comment"?: string,"p_duration_min": number,"p_guests"?: number,"p_ip"?: unknown,"p_max_active_per_ip"?: number,"p_max_active_per_phone"?: number,"p_name": string,"p_package_id"?: string,"p_phone": string,"p_resource_id": string,"p_starts_at": string }; Returns: Json
                            },
 "find_tariff":
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_local": string,"p_venue_id": string }; Returns: {
@@ -526,7 +532,7 @@ isOneToOne: false
                            },
 "get_day_bookings":
 { Args: { "p_date": string,"p_venue_id": string }; Returns: {
-              "blocked_until": string,"cancel_reason": string,"cancelled_by_guest": boolean,"comment": string,"created_at": string,"customer_id": string,"customer_name": string,"customer_phone": string,"ends_at": string,"guests": number,"id": string,"no_show_count": number,"resource_id": string,"session_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"]
+              "blocked_until": string,"cancel_reason": string,"cancelled_by_guest": boolean,"comment": string,"created_at": string,"customer_id": string,"customer_name": string,"customer_phone": string,"ends_at": string,"guests": number,"id": string,"no_show_count": number,"package_name": string,"resource_id": string,"session_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"]
             }[]
                            },
 "get_load_report":

@@ -55,6 +55,13 @@ function zoneOffset(at: number, timezone: string): number {
   return asUtc - Math.floor(at / 1000) * 1000;
 }
 
+// «23:30» + 90 минут → «01:00» (через полночь — по кругу).
+export function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(":").map(Number);
+  const total = (((h * 60 + m + minutes) % 1440) + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 // Местные дата и время заведения → момент UTC.
 export function zonedToUtc(date: string, time: string, timezone: string): Date {
   const guess = Date.parse(`${date}T${time}:00Z`);

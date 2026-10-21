@@ -32,6 +32,8 @@ export const publicBookingSchema = z.object({
     .nullable(),
   comment: z.string().trim().max(500, "tooLong"),
   consent: z.literal(true, "consentRequired"),
+  // Тариф-пакет: его минуты должны совпасть с durationMin (проверяет база).
+  packageId: z.guid("unknown").nullable().optional(),
   // Пусто, если Turnstile не настроен (только локально, см. verifyTurnstile).
   turnstileToken: z.string().max(4096),
 });

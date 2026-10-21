@@ -69,7 +69,7 @@ async function HallViewContent({
       .order("name"),
     supabase
       .from("packages")
-      .select("id, name")
+      .select("id, name, minutes, price, resource_kinds")
       .eq("venue_id", venue.id)
       .eq("is_active", true)
       .order("name"),
@@ -113,7 +113,13 @@ async function HallViewContent({
             name: r.name,
             hallName: hallNames.get(r.hall_id) ?? "",
           }))}
-          packages={packages ?? []}
+          packages={(packages ?? []).map((p) => ({
+            id: p.id,
+            name: p.name,
+            minutes: p.minutes,
+            price: p.price,
+            resourceKinds: p.resource_kinds,
+          }))}
           bookings={bookings}
           shift={
             shift

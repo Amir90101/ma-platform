@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import { ownerWithVenue } from "./helpers";
 
-// Блок «Новый тариф» / «Новый пакет», раскрытый.
+// Блок «Новая цена за час» / «Новый тариф на время», раскрытый.
 async function openNew(page: Page, title: string): Promise<Locator> {
   const block = page.locator("details", {
     has: page.locator("summary", { hasText: title }),
@@ -16,7 +16,7 @@ async function addTariff(
   page: Page,
   t: { name: string; price: string; from: string; to: string; days?: string[] },
 ) {
-  const form = await openNew(page, "Новый тариф");
+  const form = await openNew(page, "Новая цена за час");
   await form.getByLabel("Название").fill(t.name);
   await form.getByLabel("Цена за час, ₸").fill(t.price);
   if (t.days) {
@@ -47,7 +47,7 @@ test("владелец задаёт тарифы с ночным, видит ч�
   await expect(gaps(page)).toHaveText("Часов без тарифа: 84");
 
   // Ошибки формы.
-  const form = await openNew(page, "Новый тариф");
+  const form = await openNew(page, "Новая цена за час");
   await form.getByLabel("Название").fill("Пусто");
   await form.getByRole("button", { name: "Добавить" }).click();
   await expect(form.getByText("Целое число тенге")).toBeVisible();
@@ -92,10 +92,10 @@ test("владелец задаёт тарифы с ночным, видит ч�
   await expect(gaps(page)).toHaveText("Все рабочие часы покрыты тарифами.");
 
   // Пакет.
-  const pkg = await openNew(page, "Новый пакет");
+  const pkg = await openNew(page, "Новый тариф на время");
   await pkg.getByLabel("Название").fill("3 часа за 5 000");
   await pkg.getByLabel("Минут игры").fill("180");
-  await pkg.getByLabel("Цена пакета, ₸").fill("5000");
+  await pkg.getByLabel("Цена тарифа, ₸").fill("5000");
   await pkg.getByRole("button", { name: "Добавить" }).click();
   await expect(page.getByTestId("package-list")).toContainText(
     "180 мин за 5000 ₸",

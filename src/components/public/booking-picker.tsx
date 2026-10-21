@@ -16,7 +16,7 @@ import {
 import { durationOptions } from "@/lib/public-booking";
 import { cn } from "@/lib/utils";
 import { addDays, todayIn } from "@/lib/venue-time";
-import type { PublicHall } from "./types";
+import type { PublicHall, PublicPackage } from "./types";
 
 const HallCanvas = dynamic(() => import("@/components/hall/hall-canvas"), {
   ssr: false,
@@ -33,6 +33,12 @@ export function usePickedSummary(today: string, timezone: string) {
       timeZone: timezone,
     }).format(new Date(iso));
   return (picked: PickedSlot) =>
+    (picked.packageName
+      ? t("selectedTariff", {
+          name: picked.packageName,
+          price: (picked.price ?? 0).toLocaleString("ru-RU"),
+        }) + " · "
+      : "") +
     t("selected", {
       resource: picked.resourceName,
       date: dayLabelOf(picked.date, today, t),
@@ -68,7 +74,13 @@ export type PickedSlot = {
   date: string;
   startsAt: string;
   durationMin: number;
+  // Тариф-пакет: задаёт длительность и цену брони.
+  packageId: string | null;
+  packageName: string | null;
+  price: number | null;
 };
+
+const OWN_TIME = "own";
 
 // Число дат кнопками; дальние даты — полем даты.
 const DATE_CHIPS = 7;
@@ -83,6 +95,7 @@ export function BookingPicker({
   minDuration,
   slotStep,
   halls,
+  packages,
   reloadKey,
   onPick,
 }: {
@@ -93,6 +106,7 @@ export function BookingPicker({
   minDuration: number;
   slotStep: number;
   halls: PublicHall[];
+  packages: PublicPackage[];
   // Смена значения перечитывает окна (например, окно успели занять).
   reloadKey: number;
   onPick: (slot: PickedSlot | null) => void;
@@ -101,6 +115,21 @@ export function BookingPicker({
   const durations = durationOptions(minDuration, slotStep);
   const [date, setDate] = useState(today);
   const [duration, setDuration] = useState(durations[0]);
+  // Тарифы, которые можно забронировать онлайн: время укладывается в сетку
+  // окон и есть место нужного вида.
+  const tariffs = packages.filter(
+    (p) =>
+      p.minutes >= minDuration &&
+      p.minutes % slotStep === 0 &&
+      halls.some((h) =>
+        h.resources.some(
+          (r) => r.bookable_online && p.resource_kinds.includes(r.kind),
+        ),
+      ),
+  );
+  const [tariffId, setTariffId] = useState(tariffs[0]?.id ?? OWN_TIME);
+  const tariff = tariffs.find((p) => p.id === tariffId) ?? null;
+  const minutes = tariff ? tariff.minutes : duration;
   const [view, setView] = useState<"map" | "list">("map");
   const [hallId, setHallId] = useState(halls[0]?.id);
   const [resourceId, setResourceId] = useState<string | null>(null);
@@ -112,7 +141,7 @@ export function BookingPicker({
   const load = useCallback(() => {
     const id = ++request.current;
     startTransition(async () => {
-      const r = await getPublicAvailability(venueId, date, duration);
+      const r = await getPublicAvailability(venueId, date, minutes);
       // Ответ на устаревший запрос (дату уже сменили) не показываем.
       if (id !== request.current) return;
       setFailed(!r.ok);
@@ -120,7 +149,7 @@ export function BookingPicker({
     });
     // reloadKey — только повод перечитать.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [venueId, date, duration, reloadKey]);
+  }, [venueId, date, minutes, reloadKey]);
 
   useEffect(load, [load]);
   // Вернулись на вкладку — окна могли занять, перечитываем.
@@ -132,8 +161,15 @@ export function BookingPicker({
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [load]);
 
-  const byResource = Map.groupBy(slots ?? [], (s) => s.resourceId);
-  const resources = halls.flatMap((h) => h.resources);
+  // С тарифом показываем только места тех видов, к которым он подходит.
+  const resources = halls
+    .flatMap((h) => h.resources)
+    .filter((r) => !tariff || tariff.resource_kinds.includes(r.kind));
+  const allowed = new Set(resources.map((r) => r.id));
+  const byResource = Map.groupBy(
+    (slots ?? []).filter((s) => allowed.has(s.resourceId)),
+    (s) => s.resourceId,
+  );
   const hall = halls.find((h) => h.id === hallId) ?? halls[0];
   const lastDate = addDays(today, maxDaysAhead);
   const chips = Array.from(
@@ -152,7 +188,10 @@ export function BookingPicker({
       resourceName: resource?.name ?? "",
       date,
       startsAt: slot.startsAt,
-      durationMin: duration,
+      durationMin: minutes,
+      packageId: tariff?.id ?? null,
+      packageName: tariff?.name ?? null,
+      price: tariff?.price ?? null,
     });
   }
 
@@ -212,21 +251,62 @@ export function BookingPicker({
         )}
       </fieldset>
 
-      <div className="grid gap-1.5">
-        <Label htmlFor="public-duration">{t("duration")}</Label>
-        <NativeSelect
-          id="public-duration"
-          value={duration}
-          onChange={(e) => change(() => setDuration(Number(e.target.value)))}
-          className="w-full sm:w-60"
-        >
-          {durations.map((m) => (
-            <NativeSelectOption key={m} value={m}>
-              {durationLabel(m)}
-            </NativeSelectOption>
-          ))}
-        </NativeSelect>
-      </div>
+      {tariffs.length > 0 && (
+        <fieldset className="grid gap-2">
+          <legend className="mb-2 text-sm font-medium">{t("tariff")}</legend>
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {[...tariffs, null].map((p) => {
+              const value = p?.id ?? OWN_TIME;
+              return (
+                <label
+                  key={value}
+                  className="bg-card has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-primary hover:bg-muted/60 flex cursor-pointer items-start gap-3 rounded-xl border p-3 has-checked:ring-1"
+                >
+                  <input
+                    type="radio"
+                    name="public-tariff"
+                    value={value}
+                    checked={tariffId === value}
+                    onChange={() => change(() => setTariffId(value))}
+                    className="accent-primary mt-1 size-4 shrink-0"
+                  />
+                  <span className="grid min-w-0 gap-0.5">
+                    <span className="font-medium">
+                      {p ? p.name : t("ownTime")}
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      {p
+                        ? t("tariffLine", {
+                            duration: durationLabel(p.minutes),
+                            price: p.price.toLocaleString("ru-RU"),
+                          })
+                        : t("ownTimeHint")}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      {!tariff && (
+        <div className="grid gap-1.5">
+          <Label htmlFor="public-duration">{t("duration")}</Label>
+          <NativeSelect
+            id="public-duration"
+            value={duration}
+            onChange={(e) => change(() => setDuration(Number(e.target.value)))}
+            className="w-full sm:w-60"
+          >
+            {durations.map((m) => (
+              <NativeSelectOption key={m} value={m}>
+                {durationLabel(m)}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+      )}
 
       <div className="bg-muted flex w-fit gap-1 rounded-lg p-1" role="tablist">
         {(["map", "list"] as const).map((v) => (

@@ -63,6 +63,7 @@ export type PublicVenue = {
     time_to: string;
   }[];
   packages: {
+    id: string;
     name: string;
     resource_kinds: ResourceKind[];
     minutes: number;

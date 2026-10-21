@@ -9,7 +9,7 @@ import {
   usePickedSummary,
 } from "./booking-picker";
 import { BookingDonePanel, type BookingDone, GuestForm } from "./guest-form";
-import type { PublicHall } from "./types";
+import type { PublicHall, PublicPackage } from "./types";
 
 // Онлайн-бронь на публичной странице: выбор окна, форма гостя, готово.
 export function PublicBooking({
@@ -24,6 +24,7 @@ export function PublicBooking({
   slotStep: number;
   noShowAfterMin: number;
   halls: PublicHall[];
+  packages: PublicPackage[];
 }) {
   const t = useTranslations("PublicBooking");
   const summary = usePickedSummary(props.today, props.timezone);

@@ -28,6 +28,7 @@ export type FeedResource = {
   name: string;
   hallName: string;
   isActive: boolean;
+  kind: string;
 };
 
 export type FeedBooking = {
@@ -44,6 +45,7 @@ export type FeedBooking = {
   comment: string | null;
   cancelReason: string | null;
   cancelledByGuest: boolean;
+  packageName: string | null;
 };
 
 const REALTIME_TABLES = ["bookings"] as const;
@@ -226,6 +228,7 @@ function BookingItem({
           {t("noShows", { count: b.noShowCount })}
         </p>
       )}
+      {b.packageName && <p>{t("tariffValue", { name: b.packageName })}</p>}
       {b.comment && <p className="text-muted-foreground">{b.comment}</p>}
       {b.status === "cancelled" && (
         <p className="text-muted-foreground">

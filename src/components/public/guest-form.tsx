@@ -54,6 +54,7 @@ export function GuestForm({
       guests: guests ? Number(guests) : null,
       comment: String(data.get("comment") ?? ""),
       consent: data.get("consent") === "on",
+      packageId: slot.packageId,
       turnstileToken: token,
     };
     if (SITE_KEY && !token) return setError("captchaRequired");
