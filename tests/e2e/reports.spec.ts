@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import {
   admin,
@@ -73,6 +74,25 @@ test("владелец видит выручку за период", async ({ pa
   await expect(
     page.getByTestId("revenue-days").getByRole("row").nth(1),
   ).toContainText(money(first + second));
+
+  // Проверка 7.3: CSV открывается с кириллицей, суммы совпадают с экраном.
+  const download = page.waitForEvent("download");
+  await page.getByRole("link", { name: "Выручка по дням" }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toMatch(
+    /^revenue-days_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/,
+  );
+  const csv = readFileSync((await file.path())!, "utf8");
+  expect(csv.startsWith("\uFEFFДень;Наличные;Kaspi;Карта;Итого\r\n")).toBe(
+    true,
+  );
+  expect(csv).toContain(
+    `\r\nИтого;${first - 500};500;${second};${first + second}\r\n`,
+  );
+  const bad = await page.request.get(
+    `/app/${venue.venueId}/reports/export?kind=nope&from=2026-01-01&to=2026-01-02`,
+  );
+  expect(bad.status()).toBe(400);
 
   // Загрузка: оба стола заняты, остальные свободны.
   const load = page.getByTestId("load-resources");
