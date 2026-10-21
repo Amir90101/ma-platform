@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { updateVenue } from "@/app/app/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -77,15 +78,28 @@ async function VenueSettings({
     .catch([])
     .parse(venue.working_hours);
 
-  // Шаги из сценария 1 в docs/USER_FLOWS.md; правила брони и публикация —
-  // следующие этапы.
+  // Шаги из сценария 1 в docs/USER_FLOWS.md. У правил брони есть значения
+  // по умолчанию, поэтому шаг всегда готов. Шаг ведёт на свой экран.
+  const base = `/app/${venue.id}/settings`;
   const steps = [
-    { key: "profile", state: "done" },
-    { key: "hall", state: resourceCount ? "done" : "todo" },
-    { key: "tariffs", state: tariffCount ? "done" : "todo" },
-    { key: "bookingRules", state: "later" },
-    { key: "photos", state: photos.length ? "done" : "todo" },
-    { key: "publish", state: "later" },
+    { key: "profile", state: "done", href: null },
+    {
+      key: "hall",
+      state: resourceCount ? "done" : "todo",
+      href: `${base}/hall`,
+    },
+    {
+      key: "tariffs",
+      state: tariffCount ? "done" : "todo",
+      href: `${base}/tariffs`,
+    },
+    { key: "bookingRules", state: "done", href: `${base}/booking` },
+    { key: "photos", state: photos.length ? "done" : "todo", href: null },
+    {
+      key: "publish",
+      state: venue.is_published ? "done" : "todo",
+      href: `${base}/booking`,
+    },
   ] as const;
 
   return (
@@ -105,7 +119,13 @@ async function VenueSettings({
           <ol className="grid gap-2" data-testid="venue-steps">
             {steps.map((step) => (
               <li key={step.key} className="flex justify-between gap-4">
-                <span>{t(`steps.${step.key}`)}</span>
+                {step.href ? (
+                  <Link href={step.href} className="hover:underline">
+                    {t(`steps.${step.key}`)}
+                  </Link>
+                ) : (
+                  <span>{t(`steps.${step.key}`)}</span>
+                )}
                 <span
                   className={
                     step.state === "done"
@@ -113,11 +133,7 @@ async function VenueSettings({
                       : "text-muted-foreground"
                   }
                 >
-                  {step.state === "done"
-                    ? t("stepDone")
-                    : step.state === "todo"
-                      ? t("stepTodo")
-                      : t("stepLater")}
+                  {step.state === "done" ? t("stepDone") : t("stepTodo")}
                 </span>
               </li>
             ))}
