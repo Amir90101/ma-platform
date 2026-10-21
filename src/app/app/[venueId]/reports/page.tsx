@@ -141,6 +141,28 @@ async function Reports({
         </form>
       </nav>
 
+      {!error && revenue && (
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <span className="text-muted-foreground">{t("exportTitle")}:</span>
+          {(
+            [
+              ["revenue-days", "exportRevenueDays"],
+              ["revenue-resources", "exportRevenueResources"],
+              ["load", "exportLoad"],
+            ] as const
+          ).map(([kind, label]) => (
+            <a
+              key={kind}
+              href={`/app/${venue.id}/reports/export?kind=${kind}&from=${from}&to=${to}`}
+              download
+              className="font-medium hover:underline"
+            >
+              {t(label)}
+            </a>
+          ))}
+        </p>
+      )}
+
       {error || !revenue ? (
         <p role="alert" className="text-destructive">
           {t("periodInvalid")}

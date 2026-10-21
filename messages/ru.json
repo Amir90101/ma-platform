@@ -715,7 +715,6 @@
     "share": "Доля",
     "noRevenue": "За этот период оплат нет.",
     "money": "{amount} ₸",
-    "export": "Скачать CSV",
     "loadTitle": "Загрузка",
     "loadHint": "Сколько времени место было занято сеансом (игра и пауза) в часы работы за период. Будущие часы сегодняшнего дня не считаются.",
     "openHours": "Часы работы за период: {hours} ч",
@@ -734,6 +733,12 @@
     "noShowsByGuest": "Кто не пришёл",
     "count": "Раз",
     "noNoShows": "Неявок за период нет.",
-    "noName": "Без имени"
+    "noName": "Без имени",
+    "exportTitle": "Скачать CSV",
+    "exportRevenueDays": "Выручка по дням",
+    "exportRevenueResources": "Выручка по столам",
+    "exportLoad": "Загрузка",
+    "csvBusyMinutes": "Занято, мин",
+    "csvPercent": "Загрузка, %"
   }
 }
