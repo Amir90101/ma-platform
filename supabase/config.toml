@@ -118,6 +118,15 @@ enabled = true
 # The maximum file size allowed (e.g. "5MB", "500KB").
 file_size_limit = "50MiB"
 
+# Бакет фото создаёт миграция 20261020180000; здесь те же настройки и
+# демо-фото для seed: файлы из objects_path загружаются при `supabase start`
+# и `supabase seed buckets`.
+[storage.buckets.venue-photos]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/jpeg", "image/png", "image/webp"]
+objects_path = "./seed-photos"
+
 # Uncomment to configure local storage buckets
 # [storage.buckets.images]
 # public = false

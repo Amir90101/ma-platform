@@ -28,6 +28,11 @@ export const RESERVED_SLUGS = [
   "help",
   "terms",
   "privacy",
+  // Страницы приложения рядом с публичными /{slug}.
+  "auth",
+  "health",
+  "forgot-password",
+  "reset-password",
 ];
 
 export const SLUG_MIN_LENGTH = 3;
