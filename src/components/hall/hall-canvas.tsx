@@ -34,10 +34,11 @@ const STATUS_STYLE: Record<
   ItemStatus["tone"],
   { fill: string; stroke: string; text: string }
 > = {
-  free: { fill: "#dcfce7", stroke: "#15803d", text: "#14532d" },
-  busy: { fill: "#fee2e2", stroke: "#b91c1c", text: "#7f1d1d" },
-  paused: { fill: "#fef3c7", stroke: "#b45309", text: "#78350f" },
-  off: { fill: "#f3f4f6", stroke: "#d1d5db", text: "#9ca3af" },
+  // Те же оттенки, что токены --status-* в globals.css.
+  free: { fill: "#e4f6ea", stroke: "#2a9a5e", text: "#14532d" },
+  busy: { fill: "#fde7e4", stroke: "#cf3b2f", text: "#7f1d1d" },
+  paused: { fill: "#fdf1d6", stroke: "#c98410", text: "#76450b" },
+  off: { fill: "#f2f4f3", stroke: "#d3d9d6", text: "#9aa39f" },
 };
 
 const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -249,7 +250,7 @@ function ItemShape({
     textColor = style.text;
     text = item.label ?? "";
   }
-  if (selected) stroke = "#2563eb";
+  if (selected) stroke = "#1f6f56";
   const strokeWidth = selected ? 4 : 2;
   const fontSize = Math.max(12, Math.min(24, Math.min(w, h) / 3));
 
@@ -272,7 +273,7 @@ function ItemShape({
           height={h}
           cornerRadius={item.type === "resource" ? 8 : 2}
           fill={fill}
-          stroke={stroke ?? (selected ? "#2563eb" : undefined)}
+          stroke={stroke ?? (selected ? "#1f6f56" : undefined)}
           strokeWidth={strokeWidth}
           dash={dash}
         />

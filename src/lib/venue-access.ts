@@ -1,9 +1,11 @@
 import "server-only";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 // Заведение и роль текущего пользователя в нём. null — заведения нет
 // или пользователь не состоит в его организации (RLS не отдаёт строку).
-export async function getVenueAccess(venueId: string) {
+// Один запрос на рендер: каркас и страница заведения делят результат.
+export const getVenueAccess = cache(async (venueId: string) => {
   const supabase = await createClient();
   const { data: venue } = await supabase
     .from("venues")
@@ -16,4 +18,4 @@ export async function getVenueAccess(venueId: string) {
     p_org_id: venue.org_id,
   });
   return { supabase, venue, isOwner: isOwner === true };
-}
+});

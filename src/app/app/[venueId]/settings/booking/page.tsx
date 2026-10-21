@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { updateBookingRules } from "@/app/app/booking-rules-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookingRulesForm } from "@/components/venue/booking-rules-form";
@@ -65,11 +66,8 @@ async function BookingRulesContent({
   if (!venue) return <p role="alert">{tVenue("notFound")}</p>;
 
   return (
-    <>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("hint")}</p>
-      </div>
+    <div className="grid max-w-3xl gap-6">
+      <PageHeader title={t("title")} description={t("hint")} />
       <Card>
         <CardHeader>
           <CardTitle>
@@ -102,6 +100,6 @@ async function BookingRulesContent({
           />
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

@@ -52,7 +52,7 @@ export function BookingForm({
   }
 
   return (
-    <Card>
+    <Card className="xl:sticky xl:top-24">
       <CardHeader>
         <CardTitle>{t("newTitle")}</CardTitle>
       </CardHeader>
@@ -85,8 +85,8 @@ export function BookingForm({
             });
           }}
         >
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="grid gap-1.5">
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-2">
+            <div className="grid gap-1.5 xl:col-span-2">
               <Label htmlFor="booking-resource">{t("resource")}</Label>
               <NativeSelect
                 id="booking-resource"
@@ -111,7 +111,7 @@ export function BookingForm({
             </div>
           </div>
           <p className="text-muted-foreground text-xs">{t("endHint")}</p>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-2">
             <div className="grid gap-1.5">
               <Label htmlFor="booking-phone">{t("guestPhone")}</Label>
               <Input

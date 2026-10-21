@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { HallEditor } from "@/components/hall/hall-editor";
 import { NewHallForm } from "@/components/hall/new-hall-form";
 import { loadHallLayout } from "@/lib/hall/load";
@@ -48,7 +49,7 @@ async function Hall({
 
   return (
     <>
-      <h1 className="text-2xl font-semibold">{t("editorTitle")}</h1>
+      <PageHeader title={t("editorTitle")} />
       {hall ? (
         <HallEditor
           // Своё состояние у каждого зала: при переключении вкладки редактор

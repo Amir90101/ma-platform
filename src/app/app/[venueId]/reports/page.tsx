@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +62,11 @@ async function Reports({
     supabase.rpc("get_load_report", period),
   ]);
   const revenue = data as RevenueReport | null;
+  // Полоски по столам — от лучшего стола: разница между столами заметнее.
+  const topResource = Math.max(
+    1,
+    ...(revenue?.by_resource ?? []).map((r) => r.total),
+  );
   const load = loadData as LoadReport | null;
   const href = (p: { from: string; to: string }) =>
     `/app/${venue.id}/reports?from=${p.from}&to=${p.to}`;
@@ -76,16 +82,7 @@ async function Reports({
 
   return (
     <>
-      <Link
-        href={`/app/${venue.id}`}
-        className="text-muted-foreground text-sm hover:underline"
-      >
-        {tVenue("home.backToVenue")}
-      </Link>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("hint")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("hint")} />
 
       <nav className="grid gap-3" aria-label={t("title")}>
         <div className="flex flex-wrap gap-2">
@@ -173,8 +170,10 @@ async function Reports({
             <h2 className="text-xl font-semibold">{t("revenueTitle")}</h2>
           </div>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-lg border p-3">
-              <dt className="text-muted-foreground text-sm">{t("total")}</dt>
+            <div className="bg-primary text-primary-foreground rounded-xl p-4 shadow-xs">
+              <dt className="text-primary-foreground/80 text-sm">
+                {t("total")}
+              </dt>
               <dd
                 className="text-2xl font-semibold tabular-nums"
                 data-testid="revenue-total"
@@ -235,7 +234,7 @@ async function Reports({
                           <div
                             className="bg-primary/70 h-2 rounded-full"
                             style={{
-                              width: `${(r.total / revenue.total) * 100}%`,
+                              width: `${(r.total / topResource) * 100}%`,
                             }}
                           />
                         </td>
@@ -374,7 +373,7 @@ async function LoadSection({
         <h2 className="text-xl font-semibold">{t("bookingsTitle")}</h2>
         <p className="text-muted-foreground text-sm">{t("bookingsHint")}</p>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-lg border p-3">
+          <div className="bg-card rounded-xl border p-4 shadow-xs">
             <dt className="text-muted-foreground text-sm">
               {t("bookingsTotal")}
             </dt>
@@ -385,7 +384,7 @@ async function LoadSection({
               {bookings.total}
             </dd>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="bg-card rounded-xl border p-4 shadow-xs">
             <dt className="text-muted-foreground text-sm">
               {t("onlineShare")}
             </dt>
@@ -399,7 +398,7 @@ async function LoadSection({
               })}
             </dd>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="bg-card rounded-xl border p-4 shadow-xs">
             <dt className="text-muted-foreground text-sm">
               {t("noShowsTotal")}
             </dt>
@@ -410,7 +409,7 @@ async function LoadSection({
               {bookings.no_show}
             </dd>
           </div>
-          <div className="rounded-lg border p-3">
+          <div className="bg-card rounded-xl border p-4 shadow-xs">
             <dt className="text-muted-foreground text-sm">
               {t("onlineNoShows")}
             </dt>

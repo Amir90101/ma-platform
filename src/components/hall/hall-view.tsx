@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { MousePointerClick, Pause, Play, Square } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   pauseSession,
@@ -38,6 +39,18 @@ const HallCanvas = dynamic(() => import("./hall-canvas"), {
 });
 
 const DURATIONS = [30, 60, 90, 120, 180, 240];
+
+// Цвета статусов — токены из globals.css, те же, что на карте.
+const STATE_DOT = {
+  free: "bg-status-free",
+  busy: "bg-status-busy",
+  paused: "bg-status-paused",
+} as const;
+const STATE_CHIP = {
+  free: "bg-card border-border",
+  busy: "bg-status-busy-soft border-status-busy/30",
+  paused: "bg-status-paused-soft border-status-paused/40",
+} as const;
 // Статусы столов, смена и брони во всех открытых окнах.
 const REALTIME_TABLES = [
   "session_segments",
@@ -124,6 +137,13 @@ export function HallView({
   // придёт новый статус стола.
   const [busyNotice, setBusyNotice] = useState<string | null>(null);
   const realtime = useVenueRealtime(venueId, REALTIME_TABLES);
+  const panelRef = useRef<HTMLElement>(null);
+  // На телефоне панель стола под картой: после выбора стола показываем её.
+  useEffect(() => {
+    if (selectedKey && window.matchMedia("(max-width: 1023px)").matches) {
+      panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [selectedKey]);
 
   // Сумма считается в базе: раз в минуту перечитываем страницу.
   useEffect(() => {
@@ -169,82 +189,145 @@ export function HallView({
     ? bookingByResource.get(selected.id!)
     : undefined;
   const busyIds = new Set(sessions.map((s) => s.resourceId));
+  const stateOf = (id: string): "free" | "busy" | "paused" => {
+    const s = sessionByResource.get(id);
+    return s ? (s.status === "paused" ? "paused" : "busy") : "free";
+  };
+  const counts = { free: 0, busy: 0, paused: 0 };
+  for (const r of resources) counts[stateOf(r.id!)]++;
 
   return (
-    <div className="grid gap-4">
-      <ShiftBar venueId={venueId} shift={shift} timezone={timezone} />
-      {halls.length > 1 && (
-        <nav aria-label={t("halls")} className="flex flex-wrap gap-2">
-          {halls.map((h) => (
-            <Link
-              key={h.id}
-              href={`/app/${venueId}/hall?hall=${h.id}`}
-              aria-current={h.id === hall.id ? "page" : undefined}
-              className="hover:bg-muted aria-[current=page]:bg-primary aria-[current=page]:text-primary-foreground rounded-md px-3 py-1.5 text-sm"
-            >
-              {h.name}
-            </Link>
-          ))}
-        </nav>
-      )}
-
-      <div
-        className="relative w-full overflow-hidden rounded-lg border"
-        style={{ aspectRatio: `${hall.width} / ${hall.height}` }}
-      >
-        <HallCanvas
-          hall={hall}
-          items={items}
-          selectedKey={selectedKey}
-          editable={false}
-          statuses={statuses}
-          onSelect={(key) => {
-            setSelectedKey(key);
-            setBusyNotice(null);
-          }}
-          onChange={() => {}}
-        />
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)] lg:gap-6">
+      <div className="lg:col-span-2">
+        <ShiftBar venueId={venueId} shift={shift} timezone={timezone} />
       </div>
 
-      <section className="grid gap-2">
-        <h2 className="font-medium">{t("resourcesTitle")}</h2>
-        <ul className="flex flex-wrap gap-2" data-testid="hall-resources">
-          {resources.map((r) => {
-            const s = sessionByResource.get(r.id!);
-            const state = s
-              ? s.status === "paused"
-                ? "paused"
-                : "busy"
-              : "free";
-            return (
-              <li key={r.id}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedKey(r.id!);
-                    setBusyNotice(null);
-                  }}
-                  aria-pressed={r.id === selectedKey}
-                  data-state={state}
-                  className="hover:bg-muted aria-pressed:border-primary rounded-md border px-3 py-1.5 text-sm data-[state=busy]:bg-red-50 data-[state=paused]:bg-amber-50"
+      <div className="grid min-w-0 gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {halls.length > 1 ? (
+            <nav
+              aria-label={t("halls")}
+              className="bg-muted flex flex-wrap gap-1 rounded-lg p-1"
+            >
+              {halls.map((h) => (
+                <Link
+                  key={h.id}
+                  href={`/app/${venueId}/hall?hall=${h.id}`}
+                  aria-current={h.id === hall.id ? "page" : undefined}
+                  className="text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:text-foreground rounded-md px-3 py-1.5 text-sm font-medium aria-[current=page]:shadow-xs"
                 >
-                  {r.name}
-                  <span className="text-muted-foreground"> · {tw(state)}</span>
-                </button>
+                  {h.name}
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <span />
+          )}
+          <ul className="flex flex-wrap gap-2 text-sm" aria-label={t("legend")}>
+            {(["free", "busy", "paused"] as const).map((state) => (
+              <li
+                key={state}
+                className="bg-card flex items-center gap-2 rounded-full border px-3 py-1"
+              >
+                <span
+                  aria-hidden="true"
+                  className={STATE_DOT[state] + " size-2.5 rounded-full"}
+                />
+                {tw(state)}
+                <span className="font-semibold tabular-nums">
+                  {counts[state]}
+                </span>
               </li>
-            );
-          })}
-        </ul>
-      </section>
+            ))}
+          </ul>
+        </div>
+
+        <div
+          className="bg-card relative w-full overflow-hidden rounded-xl border shadow-xs"
+          style={{ aspectRatio: `${hall.width} / ${hall.height}` }}
+        >
+          <HallCanvas
+            hall={hall}
+            items={items}
+            selectedKey={selectedKey}
+            editable={false}
+            statuses={statuses}
+            onSelect={(key) => {
+              setSelectedKey(key);
+              setBusyNotice(null);
+            }}
+            onChange={() => {}}
+          />
+        </div>
+
+        <section className="grid gap-2">
+          <h2 className="text-muted-foreground text-sm font-medium">
+            {t("resourcesTitle")}
+          </h2>
+          <ul
+            className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4"
+            data-testid="hall-resources"
+          >
+            {resources.map((r) => {
+              const state = stateOf(r.id!);
+              const s = sessionByResource.get(r.id!);
+              return (
+                <li key={r.id}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedKey(r.id!);
+                      setBusyNotice(null);
+                    }}
+                    aria-pressed={r.id === selectedKey}
+                    data-state={state}
+                    className={
+                      STATE_CHIP[state] +
+                      " aria-pressed:ring-primary grid w-full gap-0.5 rounded-lg border px-3 py-2 text-left text-sm transition-shadow hover:shadow-sm aria-pressed:ring-2"
+                    }
+                  >
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        aria-hidden="true"
+                        className={
+                          STATE_DOT[state] + " size-2.5 shrink-0 rounded-full"
+                        }
+                      />
+                      <span className="truncate font-medium">{r.name}</span>
+                    </span>
+                    <span className="text-muted-foreground pl-4.5 text-xs tabular-nums">
+                      <span className="sr-only"> · </span>
+                      {s
+                        ? formatElapsed(now - Date.parse(s.startedAt))
+                        : tw(state)}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      </div>
 
       <section
-        className="grid gap-3 rounded-lg border p-4"
+        ref={panelRef}
+        className="bg-card grid scroll-mt-20 gap-4 rounded-xl border p-4 shadow-xs sm:p-5 lg:sticky lg:top-24"
         data-testid="resource-panel"
         data-realtime={realtime}
       >
         {selected ? (
           <>
-            <h2 className="text-lg font-semibold">{selected.name}</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-xl font-semibold">{selected.name}</h2>
+              <span
+                className={
+                  STATE_CHIP[stateOf(selected.id!)] +
+                  " rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                }
+              >
+                {tw(stateOf(selected.id!))}
+              </span>
+            </div>
             {busyNotice === selected.id && (
               <ActionError error="resource_busy" />
             )}
@@ -279,7 +362,15 @@ export function HallView({
             )}
           </>
         ) : (
-          <p className="text-muted-foreground text-sm">{tw("pickResource")}</p>
+          <div className="grid justify-items-center gap-2 py-8 text-center">
+            <MousePointerClick
+              aria-hidden="true"
+              className="text-muted-foreground size-8"
+            />
+            <p className="text-muted-foreground text-sm">
+              {tw("pickResource")}
+            </p>
+          </div>
         )}
       </section>
     </div>
@@ -409,9 +500,6 @@ function StartForm({
         });
       }}
     >
-      <p className="text-sm">
-        <span className="font-medium text-emerald-700">{tw("free")}</span>
-      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor="start-duration">{tw("duration")}</Label>
@@ -503,17 +591,11 @@ function SessionCard({
   const paused = session.status === "paused";
 
   return (
-    <div className="grid gap-3">
-      <p className="text-sm">
-        <span
-          className={
-            paused ? "font-medium text-amber-700" : "font-medium text-red-700"
-          }
-          data-testid="session-status"
-        >
+    <div className="grid gap-4">
+      <p className="text-muted-foreground text-sm">
+        <span className="sr-only" data-testid="session-status">
           {paused ? tw("paused") : tw("busy")}
         </span>
-        {" · "}
         {tw("startedAt", { time: time(session.startedAt) })}
         {session.expectedEndAt &&
           ` · ${tw("expectedEnd", { time: time(session.expectedEndAt) })}`}
@@ -525,11 +607,11 @@ function SessionCard({
           {session.packageName}
         </p>
       )}
-      <dl className="grid grid-cols-2 gap-3">
+      <dl className="bg-muted/60 grid grid-cols-2 gap-3 rounded-lg p-3">
         <div>
           <dt className="text-muted-foreground text-xs">{tw("elapsed")}</dt>
           <dd
-            className="font-mono text-2xl tabular-nums"
+            className="text-3xl font-semibold tracking-tight tabular-nums"
             data-testid="session-timer"
           >
             {formatElapsed(now - Date.parse(session.startedAt))}
@@ -537,7 +619,10 @@ function SessionCard({
         </div>
         <div>
           <dt className="text-muted-foreground text-xs">{tw("amount")}</dt>
-          <dd className="text-2xl tabular-nums" data-testid="session-amount">
+          <dd
+            className="text-3xl font-semibold tracking-tight tabular-nums"
+            data-testid="session-amount"
+          >
             {session.amount === null
               ? "—"
               : tw("amountValue", { amount: session.amount })}
@@ -562,27 +647,32 @@ function SessionCard({
         />
       ) : (
         <>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {paused ? (
               <Button
                 type="button"
+                size="lg"
                 disabled={pending}
                 onClick={() => run(() => resumeSession(session.id))}
               >
+                <Play aria-hidden="true" />
                 {tw("resume")}
               </Button>
             ) : (
               <Button
                 type="button"
+                size="lg"
                 variant="outline"
                 disabled={pending}
                 onClick={() => run(() => pauseSession(session.id))}
               >
+                <Pause aria-hidden="true" />
                 {tw("pause")}
               </Button>
             )}
             <Button
               type="button"
+              size="lg"
               variant="destructive"
               disabled={pending}
               onClick={() =>
@@ -595,15 +685,17 @@ function SessionCard({
                 })
               }
             >
+              <Square aria-hidden="true" />
               {tw("stop")}
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="grid gap-1.5">
+          <div className="flex items-end gap-2 border-t pt-4">
+            <div className="grid min-w-0 flex-1 gap-1.5">
               <Label htmlFor="transfer-to">{tw("transferTo")}</Label>
               <NativeSelect
                 id="transfer-to"
+                className="w-full"
                 value={target}
                 onChange={(e) => setTarget(e.target.value)}
                 disabled={!freeResources.length}

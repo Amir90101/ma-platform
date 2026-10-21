@@ -10,6 +10,14 @@ import type { Database } from "@/lib/supabase/types";
 
 type BookingStatus = Database["public"]["Enums"]["booking_status"];
 
+const STATUS_TONE: Record<BookingStatus, string> = {
+  confirmed: "bg-status-free-soft text-status-free",
+  arrived: "bg-status-free-soft text-status-free",
+  completed: "bg-muted text-muted-foreground",
+  cancelled: "bg-status-busy-soft text-status-busy",
+  no_show: "bg-status-paused-soft text-status-paused",
+};
+
 // Ответ get_booking_by_token: без имени и телефона гостя.
 type GuestBooking = {
   code: string;
@@ -78,7 +86,10 @@ async function GuestBookingContent({
     }).format(new Date(iso));
 
   return (
-    <article className="grid gap-5" data-testid="guest-booking">
+    <article
+      className="bg-card grid gap-5 rounded-2xl border p-6 shadow-sm"
+      data-testid="guest-booking"
+    >
       <header className="grid gap-1">
         <p className="text-muted-foreground text-sm">
           {t("code", { code: booking.code })}
@@ -89,7 +100,10 @@ async function GuestBookingContent({
           </Link>
         </h1>
         <p
-          className="bg-muted w-fit rounded-md px-2 py-0.5 text-sm font-medium"
+          className={
+            STATUS_TONE[booking.status] +
+            " w-fit rounded-full px-3 py-1 text-sm font-medium"
+          }
           data-testid="guest-booking-status"
         >
           {booking.status === "cancelled" && booking.cancelled_by_guest
@@ -98,7 +112,7 @@ async function GuestBookingContent({
         </p>
       </header>
 
-      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+      <dl className="bg-muted/50 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 rounded-xl p-4 text-sm">
         <dt className="text-muted-foreground">{t("when")}</dt>
         <dd className="first-letter:uppercase">
           {date}, {time(booking.starts_at)}–{time(booking.ends_at)}

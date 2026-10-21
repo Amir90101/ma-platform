@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import Link from "next/link";
+import { SettingsTabs } from "@/components/app-shell/settings-tabs";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { getVenueAccess } from "@/lib/venue-access";
@@ -35,41 +35,7 @@ async function OwnerOnly({
 
   return (
     <>
-      <nav className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <Link
-          href={`/app/${venueId}`}
-          className="text-muted-foreground hover:underline"
-        >
-          {t("home.backToVenue")}
-        </Link>
-        <Link href={`/app/${venueId}/settings`} className="hover:underline">
-          {t("home.settings")}
-        </Link>
-        <Link
-          href={`/app/${venueId}/settings/hall`}
-          className="hover:underline"
-        >
-          {t("home.hall")}
-        </Link>
-        <Link
-          href={`/app/${venueId}/settings/tariffs`}
-          className="hover:underline"
-        >
-          {t("home.tariffs")}
-        </Link>
-        <Link
-          href={`/app/${venueId}/settings/booking`}
-          className="hover:underline"
-        >
-          {t("home.bookingRules")}
-        </Link>
-        <Link
-          href={`/app/${venueId}/settings/staff`}
-          className="hover:underline"
-        >
-          {t("home.staff")}
-        </Link>
-      </nav>
+      <SettingsTabs venueId={venueId} />
       {children}
     </>
   );

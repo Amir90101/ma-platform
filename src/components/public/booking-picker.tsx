@@ -175,14 +175,14 @@ export function BookingPicker({
     <div className="grid gap-4" data-testid="booking-picker">
       <fieldset className="grid gap-2">
         <legend className="mb-2 text-sm font-medium">{t("date")}</legend>
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+        <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
           {chips.map((d) => (
             <button
               key={d}
               type="button"
               aria-pressed={d === date}
               onClick={() => change(() => setDate(d))}
-              className="hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground shrink-0 rounded-full border px-3 py-1.5 text-sm first-letter:uppercase"
+              className="bg-card hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:border-primary shrink-0 rounded-full border px-4 py-2 text-sm font-medium first-letter:uppercase"
             >
               {dayLabel(d)}
             </button>
@@ -228,7 +228,7 @@ export function BookingPicker({
         </NativeSelect>
       </div>
 
-      <div className="flex flex-wrap gap-2" role="tablist">
+      <div className="bg-muted flex w-fit gap-1 rounded-lg p-1" role="tablist">
         {(["map", "list"] as const).map((v) => (
           <button
             key={v}
@@ -236,7 +236,7 @@ export function BookingPicker({
             role="tab"
             aria-selected={view === v}
             onClick={() => setView(v)}
-            className="aria-selected:border-primary rounded-md border-b-2 border-transparent px-2 py-1 text-sm font-medium"
+            className="text-muted-foreground aria-selected:bg-card aria-selected:text-foreground rounded-md px-3 py-1.5 text-sm font-medium aria-selected:shadow-xs"
           >
             {v === "map" ? t("viewMap") : t("viewList")}
           </button>
@@ -369,7 +369,7 @@ function SlotChips({
               key={s.startsAt}
               type="button"
               onClick={() => onPick(s)}
-              className="hover:bg-primary hover:text-primary-foreground rounded-md border px-2.5 py-1 text-sm tabular-nums"
+              className="bg-card hover:border-primary hover:bg-primary hover:text-primary-foreground min-w-16 rounded-lg border px-3 py-2 text-sm font-medium tabular-nums transition-colors"
             >
               {format(s.startsAt)}
               {/* Ночное окно — уже следующие сутки рабочего дня. */}

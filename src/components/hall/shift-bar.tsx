@@ -39,12 +39,12 @@ export function ShiftBar({
 
   return (
     <section
-      className="grid gap-2 rounded-lg border p-3 data-[open=false]:border-amber-400 data-[open=false]:bg-amber-50"
+      className="bg-card data-[open=false]:border-status-paused/50 data-[open=false]:bg-status-paused-soft flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-xl border px-4 py-3 shadow-xs"
       data-open={!!shift}
       data-testid="shift-bar"
     >
       {closed && (
-        <p role="status" className="text-sm font-medium">
+        <p role="status" className="basis-full text-sm font-medium">
           {tw("shiftResult", {
             expected: closed.expected,
             counted: closed.counted,
@@ -52,7 +52,14 @@ export function ShiftBar({
           })}
         </p>
       )}
-      <p className="text-sm">
+      <p className="flex items-center gap-2 text-sm font-medium">
+        <span
+          aria-hidden="true"
+          className={
+            (shift ? "bg-status-free" : "bg-status-paused") +
+            " size-2.5 shrink-0 rounded-full"
+          }
+        />
         {shift
           ? tw("shiftOpen", {
               time: time(shift.openedAt),

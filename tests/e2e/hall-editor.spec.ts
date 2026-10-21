@@ -38,7 +38,8 @@ test("владелец расставляет столы, двигает и по
     await page.getByLabel("Y", { exact: true }).inputValue(),
   );
   const canvas = page.getByTestId("hall-canvas");
-  await canvas.scrollIntoViewIfNeeded();
+  // Холст целиком под закреплённой верхней полосой.
+  await canvas.evaluate((el) => el.scrollIntoView({ block: "end" }));
   const box = (await canvas.boundingBox())!;
   const scale = box.width / HALL_WIDTH;
   const from = {
