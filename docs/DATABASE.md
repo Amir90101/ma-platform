@@ -182,6 +182,7 @@
 | cancelled_at | timestamptz | |
 | cancelled_by_guest | boolean not null default false | |
 | cancel_reason | text | |
+| created_ip | inet | IP онлайн-брони; для лимита активных броней на один IP. У броней админки `null` |
 
 ### sessions
 
@@ -334,11 +335,11 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `get_org_staff(org_id)` | Владелец | Сотрудники организации с email и именем из `auth.users`; остальным пустой результат |
 | `user_id_by_email(email)` | Только сервер (`service_role`) | id уже зарегистрированного пользователя, когда его приглашают администратором |
 | `save_hall_layout(hall_id, resources, objects)` | Владелец | Сохраняет карту зала целиком в одной транзакции: создаёт, меняет и удаляет ресурсы и декор. Ресурс с историей не удаляется, а выключается |
-| `get_public_venue(slug)` | anon | Профиль, фото, карта, цены опубликованного заведения. Без данных гостей |
-| `get_availability(venue_id, date, duration_min)` | anon | Свободные окна по каждому ресурсу на дату |
-| `create_public_booking(...)` | Только сервер (Route Handler) | Находит или создаёт гостя, создаёт бронь `confirmed`, возвращает `manage_token` |
-| `get_booking_by_token(token)` | anon | Данные одной брони для страницы `/b/{token}` |
-| `cancel_booking_by_token(token)` | anon | Отмена гостем; только до `starts_at` |
+| `get_public_venue(slug)` | anon | Профиль, правила брони, пути фото, залы с активными ресурсами и декором, активные тарифы и пакеты опубликованного заведения. Без данных гостей; неопубликованное — `null` |
+| `get_availability(venue_id, date, duration_min)` | anon | Строки `(resource_id, starts_at)`: начала свободных окон рабочего дня `date` (от открытия с шагом `slot_step_min`, бронь целиком до закрытия, ночные часы — до закрытия на следующие сутки). Не раньше `now + min_lead_min`, дата не дальше `max_days_ahead`. Только активные ресурсы с `bookable_online`, только опубликованные заведения с онлайн-бронью. Окно занято бронями с их буфером и открытыми сеансами: с `expected_end_at` — до него плюс буфер, без него — целиком. Длительность меньше `min_duration_min` или не кратная шагу — `duration_invalid` |
+| `create_public_booking(resource_id, starts_at, duration_min, phone, name, guests?, comment?, ip?, max_active_per_phone?, max_active_per_ip?)` | Только сервер (`service_role`) | Время должно быть одним из окон `get_availability`, иначе `slot_unavailable`. Находит или создаёт гостя (имя существующего не меняет, ставит `consent_at`), создаёт бронь `confirmed` с `source = online`. Лимиты активных онлайн-броней на телефон и IP — `limit_phone`, `limit_ip`. Возвращает `{id, manage_token, starts_at, ends_at}` |
+| `get_booking_by_token(token)` | anon | Код, статус, время, стол, гостей, `can_cancel` и контакты заведения для `/b/{token}`. Без имени и телефона гостя; неверный токен — `null` |
+| `cancel_booking_by_token(token)` | anon | Отмена гостем только `confirmed` и до `starts_at` (`cancel_too_late`); пишется в журнал без автора |
 | `get_day_bookings(venue_id, date)` | Администратор | Брони на день во всех статусах, с гостем, числом его прошлых неявок и сеансом брони. День — местные сутки, продлённые до закрытия, если заведение в этот день работает через полночь: ночная бронь видна и в своём рабочем дне, и в календарном |
 | `create_manual_booking(resource_id, starts_at, ends_at, customer_phone, customer_name?, guests?, comment?, source?)` | Администратор | Бронь по звонку (`phone`) или на месте (`manual`), сразу `confirmed`; гостя находит или создаёт по телефону, `blocked_until` = `ends_at` + `buffer_min`. Пересечение — ошибка `booking_overlap`, в `detail` мешающая бронь: `{id, starts_at, ends_at, customer_name}` |
 | `set_booking_status(booking_id, status, reason?)` | Администратор | Из `confirmed` в `cancelled` (причина обязательна) или `no_show`. Остальные переходы ставят сеансы |
