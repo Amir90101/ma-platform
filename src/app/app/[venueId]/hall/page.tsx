@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { HallView } from "@/components/hall/hall-view";
 import { loadHallLayout } from "@/lib/hall/load";
 import { loadOpenSessions } from "@/lib/hall/open-sessions";
+import { loadUpcomingBookings } from "@/lib/hall/upcoming-bookings";
 import { getVenueAccess } from "@/lib/venue-access";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -53,6 +54,7 @@ async function HallViewContent({
     { data: allResources },
     { data: packages },
     { data: shift },
+    bookings,
   ] = await Promise.all([
     loadOpenSessions(supabase, venue.id),
     supabase.from("venues").select("timezone").eq("id", venue.id).single(),
@@ -74,6 +76,7 @@ async function HallViewContent({
       .eq("venue_id", venue.id)
       .is("closed_at", null)
       .maybeSingle(),
+    loadUpcomingBookings(supabase, venue.id),
   ]);
   const hallNames = new Map((halls ?? []).map((h) => [h.id, h.name]));
 
@@ -121,6 +124,7 @@ async function HallViewContent({
             hallName: hallNames.get(r.hall_id) ?? "",
           }))}
           packages={packages ?? []}
+          bookings={bookings}
           shift={
             shift
               ? {

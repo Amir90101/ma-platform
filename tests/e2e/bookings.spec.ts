@@ -1,6 +1,6 @@
 import { expect, type Page, test } from "@playwright/test";
 import { addDays, todayIn, zonedToUtc } from "../../src/lib/venue-time";
-import { admin, seedWorkVenue } from "./fixtures";
+import { addAdmin, admin, seedWorkVenue, signedInClient } from "./fixtures";
 import { registerOwner, uniqueEmail } from "./helpers";
 
 // Лента завтрашнего дня: брони не упираются в «бронь в прошлом».
@@ -19,16 +19,15 @@ async function openFeed(page: Page) {
   return venue;
 }
 
-async function book(
-  page: Page,
-  b: {
-    table: string;
-    start: string;
-    end: string;
-    phone: string;
-    name?: string;
-  },
-) {
+type BookingInput = {
+  table: string;
+  start: string;
+  end: string;
+  phone: string;
+  name?: string;
+};
+
+async function fillBooking(page: Page, b: BookingInput) {
   const form = page.getByTestId("booking-form");
   await form
     .getByLabel("Стол", { exact: true })
@@ -37,7 +36,18 @@ async function book(
   await form.getByLabel("Конец").fill(b.end);
   await form.getByLabel("Телефон гостя").fill(b.phone);
   await form.getByLabel("Имя гостя").fill(b.name ?? "");
-  await form.getByRole("button", { name: "Забронировать" }).click();
+}
+
+function submitBooking(page: Page) {
+  return page
+    .getByTestId("booking-form")
+    .getByRole("button", { name: "Забронировать" })
+    .click();
+}
+
+async function book(page: Page, b: BookingInput) {
+  await fillBooking(page, b);
+  await submitBooking(page);
 }
 
 function feedResource(page: Page, name: string) {
@@ -161,4 +171,61 @@ test("лента показывает прошлые неявки гостя и 
   await expect(booking.getByRole("button", { name: "Не пришёл" })).toHaveCount(
     0,
   );
+});
+
+// Критерий этапа 5: две одновременные брони на одно время не создаются ни
+// через интерфейс, ни прямым вызовом RPC.
+test("одновременные брони на одно время: проходит только одна", async ({
+  page,
+}) => {
+  const venue = await openFeed(page);
+  const second = await page.context().newPage();
+  await second.goto(page.url());
+  await expect(second.getByTestId("booking-feed")).toHaveAttribute(
+    "data-realtime",
+    "on",
+  );
+
+  const slot = { table: "Стол 1", start: "19:00", end: "21:00" };
+  await fillBooking(page, { ...slot, phone: "+77040000001", name: "Первый" });
+  await fillBooking(second, { ...slot, phone: "+77040000002", name: "Второй" });
+  await Promise.all([submitBooking(page), submitBooking(second)]);
+
+  for (const p of [page, second]) {
+    await expect(
+      p.getByTestId("booking-created").or(p.getByTestId("booking-form-error")),
+    ).toBeVisible();
+  }
+  const created = await Promise.all(
+    [page, second].map((p) => p.getByTestId("booking-created").count()),
+  );
+  expect([...created].sort()).toEqual([0, 1]);
+  await expect(
+    (created[0] ? second : page).getByTestId("booking-form-error"),
+  ).toHaveText(/^Время занято: бронь (Первый|Второй), 19:00–21:00$/);
+  await expect(
+    feedResource(page, "Стол 1").getByTestId("feed-booking"),
+  ).toHaveCount(1);
+
+  // Прямые вызовы RPC от двух администраторов одновременно.
+  const clients = await Promise.all(
+    [await addAdmin(venue.venueId), await addAdmin(venue.venueId)].map((a) =>
+      signedInClient(a.email, a.password),
+    ),
+  );
+  const startsAt = zonedToUtc(TOMORROW, "12:00", "Asia/Almaty");
+  const results = await Promise.all(
+    Array.from({ length: 6 }, (_, i) =>
+      clients[i % 2].rpc("create_manual_booking", {
+        p_resource_id: venue.tables[2].id,
+        p_starts_at: startsAt.toISOString(),
+        p_ends_at: new Date(startsAt.getTime() + 3_600_000).toISOString(),
+        p_customer_phone: `+7704100000${i}`,
+      }),
+    ),
+  );
+  expect(results.filter((r) => !r.error)).toHaveLength(1);
+  expect(
+    results.filter((r) => r.error?.message === "booking_overlap"),
+  ).toHaveLength(5);
 });

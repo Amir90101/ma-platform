@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import {
+  arriveBooking,
   type BookingActionResult,
   cancelBooking,
   markNoShow,
@@ -10,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { canArrive } from "@/lib/booking-rules";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { useVenueRealtime } from "@/lib/hooks/use-venue-realtime";
 import type { Database } from "@/lib/supabase/types";
@@ -113,9 +116,11 @@ export function BookingFeed({
                   <BookingItem
                     key={b.id}
                     booking={b}
+                    venueId={venueId}
                     date={date}
                     timezone={timezone}
                     started={Date.parse(b.startsAt) <= Date.parse(now)}
+                    arrivable={canArrive(b.startsAt, b.endsAt, Date.parse(now))}
                   />
                 ))}
               </ul>
@@ -128,14 +133,18 @@ export function BookingFeed({
 
 function BookingItem({
   booking: b,
+  venueId,
   date,
   timezone,
   started,
+  arrivable,
 }: {
   booking: FeedBooking;
+  venueId: string;
   date: string;
   timezone: string;
   started: boolean;
+  arrivable: boolean;
 }) {
   const t = useTranslations("Bookings");
   const hydrated = useHydrated();
@@ -212,6 +221,16 @@ function BookingItem({
         </p>
       )}
 
+      {b.status === "arrived" && (
+        <p>
+          <Link
+            href={`/app/${venueId}/hall`}
+            className="text-sm font-medium hover:underline"
+          >
+            {t("toHall")}
+          </Link>
+        </p>
+      )}
       {b.status === "confirmed" &&
         (cancelling ? (
           <form
@@ -253,6 +272,16 @@ function BookingItem({
           </form>
         ) : (
           <div className="flex flex-wrap gap-2">
+            {arrivable && (
+              <Button
+                type="button"
+                size="sm"
+                disabled={pending || !hydrated}
+                onClick={() => run(() => arriveBooking(b.id))}
+              >
+                {t("arrived")}
+              </Button>
+            )}
             {started && (
               <Button
                 type="button"

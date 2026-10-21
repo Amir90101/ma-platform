@@ -342,14 +342,15 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `get_day_bookings(venue_id, date)` | Администратор | Брони на день во всех статусах, с гостем, числом его прошлых неявок и сеансом брони. День — местные сутки, продлённые до закрытия, если заведение в этот день работает через полночь: ночная бронь видна и в своём рабочем дне, и в календарном |
 | `create_manual_booking(resource_id, starts_at, ends_at, customer_phone, customer_name?, guests?, comment?, source?)` | Администратор | Бронь по звонку (`phone`) или на месте (`manual`), сразу `confirmed`; гостя находит или создаёт по телефону, `blocked_until` = `ends_at` + `buffer_min`. Пересечение — ошибка `booking_overlap`, в `detail` мешающая бронь: `{id, starts_at, ends_at, customer_name}` |
 | `set_booking_status(booking_id, status, reason?)` | Администратор | Из `confirmed` в `cancelled` (причина обязательна) или `no_show`. Остальные переходы ставят сеансы |
-| `start_session(resource_id, expected_end_at?, package_id?, customer_phone?, customer_name?)` | Администратор | Сеанс и первый отрезок `play`; гостя находит или создаёт по телефону. Запуск по брони (бронь → `arrived`) добавит этап 5 |
+| `start_session(resource_id, expected_end_at?, package_id?, customer_phone?, customer_name?)` | Администратор | Сеанс и первый отрезок `play`; гостя находит или создаёт по телефону. Запуск по брони — `arrive_booking` |
+| `arrive_booking(booking_id, package_id?)` | Администратор | «Пришёл»: бронь `confirmed` становится сеансом на своём ресурсе с гостем и `expected_end_at` = `ends_at` брони, бронь → `arrived`. Закончившаяся бронь — `booking_ended`, занятый стол — `resource_busy` (бронь не меняется) |
 | `pause_session(session_id)` / `resume_session(session_id)` | Администратор | Закрывает текущий отрезок, открывает новый |
 | `transfer_session(session_id, resource_id)` | Администратор | Перенос на другой ресурс |
 | `calc_session_amount(session_id, at?)` | Администратор | Сумма на момент `at` (по умолчанию сейчас), без записи |
 | `calc_play_amount(venue_id, segments, package_id?, at?)` | Участники | Ядро расчёта: сумма и строки чека по переданным отрезкам. Готово с этапа 3.1; `calc_session_amount` передаёт ей отрезки сеанса |
 | `find_tariff(venue_id, resource_kind, local_time)` | Участники | Тариф, который действует в этот местный момент, с учётом ночных интервалов и `priority` |
 | `tariff_week_grid(venue_id, resource_kind)` | Участники | Тариф на каждые полчаса недели через `find_tariff`, для сетки на экране тарифов |
-| `close_session(session_id, discount_amount?)` | Администратор | Закрывает отрезки, считает и записывает суммы, снимок тарифов; бронь → `completed` |
+| `close_session(session_id, discount_amount?)` | Администратор | Закрывает отрезки, считает и записывает суммы, снимок тарифов. Бронь сеанса → `completed` (триггер `sessions_complete_booking`, он же срабатывает при аннулировании) |
 | `void_session(session_id, reason)` | Владелец | Аннулирует сеанс, пишет в журнал |
 | `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; оплате нужна открытая смена. Закрытый сеанс нельзя переплатить; отмена требует причину |
 | `open_shift(venue_id, opening_cash)` / `close_shift(shift_id, closing_cash)` | Администратор | Смена; при закрытии считает `expected_cash` |
