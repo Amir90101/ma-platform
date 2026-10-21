@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
-import { backdateOpenSession, seedWorkVenue, signedInClient } from "./fixtures";
+import {
+  admin,
+  backdateOpenSession,
+  seedPublicVenue,
+  signedInClient,
+} from "./fixtures";
 import { registerOwner, uniqueEmail } from "./helpers";
 
 // Сеанс на столе: час игры, пауза (сумма перестаёт расти), оплата частями.
@@ -31,7 +36,8 @@ test("владелец видит выручку за период", async ({ pa
   const email = uniqueEmail("reports");
   await registerOwner(page, email);
   await page.waitForURL("/app");
-  const venue = await seedWorkVenue(email);
+  // Круглосуточные часы работы: загрузка считается в любое время запуска.
+  const venue = await seedPublicVenue(email);
   const owner = await signedInClient(email, "test-password-1");
   await owner.rpc("open_shift", {
     p_venue_id: venue.venueId,
@@ -67,4 +73,48 @@ test("владелец видит выручку за период", async ({ pa
   await expect(
     page.getByTestId("revenue-days").getByRole("row").nth(1),
   ).toContainText(money(first + second));
+
+  // Загрузка: оба стола заняты, остальные свободны.
+  const load = page.getByTestId("load-resources");
+  await expect(load.getByRole("row", { name: /Стол 1/ })).toBeVisible();
+  await expect(load.getByRole("row", { name: /Стол 3/ })).toContainText("0 %");
+});
+
+// Проверка 7.2: неявки и доля онлайн-броней за месяц.
+test("владелец видит неявки и долю онлайн-броней", async ({ page }) => {
+  const email = uniqueEmail("noshow");
+  await registerOwner(page, email);
+  await page.waitForURL("/app");
+  const venue = await seedPublicVenue(email);
+  const { data: customer } = await admin
+    .from("customers")
+    .insert({ venue_id: venue.venueId, phone: "+77090000001", name: "Нурик" })
+    .select("id")
+    .single();
+  // Две прошедшие брони этого месяца: онлайн — неявка, по звонку — пришёл.
+  const at = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 3_600_000);
+  for (const [i, source, status] of [
+    [0, "online", "no_show"],
+    [1, "phone", "completed"],
+  ] as const) {
+    await admin.from("bookings").insert({
+      venue_id: venue.venueId,
+      resource_id: venue.tables[i].id,
+      customer_id: customer!.id,
+      starts_at: at(2).toISOString(),
+      ends_at: at(1).toISOString(),
+      blocked_until: at(1).toISOString(),
+      source,
+      status,
+    });
+  }
+
+  await page.goto(`/app/${venue.venueId}/reports`);
+  const stats = page.getByTestId("bookings-stats");
+  await expect(stats.getByTestId("bookings-total")).toHaveText("2");
+  await expect(stats.getByTestId("bookings-online")).toHaveText("1 · 50 %");
+  await expect(stats.getByTestId("bookings-no-show")).toHaveText("1");
+  await expect(stats.getByTestId("no-show-guests")).toContainText(
+    "Нурик +77090000001",
+  );
 });

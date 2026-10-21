@@ -715,6 +715,25 @@
     "share": "Доля",
     "noRevenue": "За этот период оплат нет.",
     "money": "{amount} ₸",
-    "export": "Скачать CSV"
+    "export": "Скачать CSV",
+    "loadTitle": "Загрузка",
+    "loadHint": "Сколько времени место было занято сеансом (игра и пауза) в часы работы за период. Будущие часы сегодняшнего дня не считаются.",
+    "openHours": "Часы работы за период: {hours} ч",
+    "busy": "Занято",
+    "percent": "Загрузка",
+    "hoursValue": "{hours} ч",
+    "noOpenHours": "За этот период заведение ещё не работало.",
+    "bookingsTitle": "Брони и неявки",
+    "bookingsHint": "Брони с началом в выбранном периоде.",
+    "bookingsTotal": "Броней",
+    "onlineShare": "Онлайн",
+    "onlineShareValue": "{count} · {share} %",
+    "noShowsTotal": "Неявок",
+    "onlineNoShows": "Из них онлайн",
+    "noShowsByDay": "Неявки по дням",
+    "noShowsByGuest": "Кто не пришёл",
+    "count": "Раз",
+    "noNoShows": "Неявок за период нет.",
+    "noName": "Без имени"
   }
 }
