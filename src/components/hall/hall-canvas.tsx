@@ -24,8 +24,9 @@ import type { EditorItem } from "./hall-editor";
 type HallSize = { width: number; height: number };
 
 // Статус стола на рабочем экране и вторая строка подписи (таймер).
+// off — на публичной странице: на выбранное время стол не забронировать.
 export type ItemStatus = {
-  tone: "free" | "busy" | "paused";
+  tone: "free" | "busy" | "paused" | "off";
   caption?: string;
 };
 
@@ -36,6 +37,7 @@ const STATUS_STYLE: Record<
   free: { fill: "#dcfce7", stroke: "#15803d", text: "#14532d" },
   busy: { fill: "#fee2e2", stroke: "#b91c1c", text: "#7f1d1d" },
   paused: { fill: "#fef3c7", stroke: "#b45309", text: "#78350f" },
+  off: { fill: "#f3f4f6", stroke: "#d1d5db", text: "#9ca3af" },
 };
 
 const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];

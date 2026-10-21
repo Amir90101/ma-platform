@@ -1,0 +1,395 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { getPublicAvailability, type PublicSlot } from "@/app/[slug]/actions";
+import type { ItemStatus } from "@/components/hall/hall-canvas";
+import type { EditorItem } from "@/components/hall/hall-editor";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from "@/components/ui/native-select";
+import { durationOptions } from "@/lib/public-booking";
+import { cn } from "@/lib/utils";
+import { addDays, todayIn } from "@/lib/venue-time";
+import type { PublicHall } from "./types";
+
+const HallCanvas = dynamic(() => import("@/components/hall/hall-canvas"), {
+  ssr: false,
+  loading: () => <div className="bg-muted/30 size-full animate-pulse" />,
+});
+
+export type PickedSlot = {
+  resourceId: string;
+  resourceName: string;
+  date: string;
+  startsAt: string;
+  durationMin: number;
+};
+
+// Число дат кнопками; дальние даты — полем даты.
+const DATE_CHIPS = 7;
+
+// Выбор даты, длительности, места и времени. Окна считает база
+// (get_availability), страница только показывает их.
+export function BookingPicker({
+  venueId,
+  timezone,
+  today,
+  maxDaysAhead,
+  minDuration,
+  slotStep,
+  halls,
+  picked,
+  onPick,
+}: {
+  venueId: string;
+  timezone: string;
+  today: string;
+  maxDaysAhead: number;
+  minDuration: number;
+  slotStep: number;
+  halls: PublicHall[];
+  picked: PickedSlot | null;
+  onPick: (slot: PickedSlot | null) => void;
+}) {
+  const t = useTranslations("PublicBooking");
+  const durations = durationOptions(minDuration, slotStep);
+  const [date, setDate] = useState(today);
+  const [duration, setDuration] = useState(durations[0]);
+  const [view, setView] = useState<"map" | "list">("map");
+  const [hallId, setHallId] = useState(halls[0]?.id);
+  const [resourceId, setResourceId] = useState<string | null>(null);
+  const [slots, setSlots] = useState<PublicSlot[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [pending, startTransition] = useTransition();
+  const request = useRef(0);
+
+  const load = useCallback(() => {
+    const id = ++request.current;
+    startTransition(async () => {
+      const r = await getPublicAvailability(venueId, date, duration);
+      // Ответ на устаревший запрос (дату уже сменили) не показываем.
+      if (id !== request.current) return;
+      setFailed(!r.ok);
+      setSlots(r.ok ? r.slots : null);
+    });
+  }, [venueId, date, duration]);
+
+  useEffect(load, [load]);
+  // Вернулись на вкладку — окна могли занять, перечитываем.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [load]);
+
+  const byResource = Map.groupBy(slots ?? [], (s) => s.resourceId);
+  const resources = halls.flatMap((h) => h.resources);
+  const hall = halls.find((h) => h.id === hallId) ?? halls[0];
+  const lastDate = addDays(today, maxDaysAhead);
+  const chips = Array.from(
+    { length: Math.min(DATE_CHIPS, maxDaysAhead + 1) },
+    (_, i) => addDays(today, i),
+  );
+
+  const time = (iso: string) =>
+    new Intl.DateTimeFormat("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: timezone,
+    }).format(new Date(iso));
+  const dayLabel = (d: string) =>
+    d === today
+      ? t("today")
+      : d === addDays(today, 1)
+        ? t("tomorrow")
+        : new Intl.DateTimeFormat("ru-RU", {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+            timeZone: "UTC",
+          }).format(new Date(`${d}T00:00:00Z`));
+  const durationLabel = (m: number) =>
+    t("durationValue", { hours: Math.floor(m / 60), minutes: m % 60 }).trim();
+
+  function pick(slot: PublicSlot) {
+    const resource = resources.find((r) => r.id === slot.resourceId);
+    onPick({
+      resourceId: slot.resourceId,
+      resourceName: resource?.name ?? "",
+      date,
+      startsAt: slot.startsAt,
+      durationMin: duration,
+    });
+  }
+
+  // Смена даты или длительности сбрасывает выбор: окна уже другие.
+  function change(next: () => void) {
+    next();
+    setResourceId(null);
+    onPick(null);
+  }
+
+  if (picked) {
+    const end = new Date(
+      Date.parse(picked.startsAt) + picked.durationMin * 60_000,
+    ).toISOString();
+    return (
+      <div
+        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+        data-testid="picked-slot"
+      >
+        <p className="font-medium">
+          {t("selected", {
+            resource: picked.resourceName,
+            date: dayLabel(picked.date),
+            from: time(picked.startsAt),
+            to: time(end),
+          })}
+        </p>
+        <Button variant="outline" size="sm" onClick={() => onPick(null)}>
+          {t("change")}
+        </Button>
+      </div>
+    );
+  }
+
+  const selected = resources.find((r) => r.id === resourceId);
+  const statuses: Record<string, ItemStatus> = Object.fromEntries(
+    resources.map((r) => [
+      r.id,
+      { tone: byResource.has(r.id) ? "free" : "off" } as ItemStatus,
+    ]),
+  );
+
+  return (
+    <div className="grid gap-4" data-testid="booking-picker">
+      <fieldset className="grid gap-2">
+        <legend className="mb-2 text-sm font-medium">{t("date")}</legend>
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+          {chips.map((d) => (
+            <button
+              key={d}
+              type="button"
+              aria-pressed={d === date}
+              onClick={() => change(() => setDate(d))}
+              className="hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground shrink-0 rounded-full border px-3 py-1.5 text-sm first-letter:uppercase"
+            >
+              {dayLabel(d)}
+            </button>
+          ))}
+        </div>
+        {maxDaysAhead + 1 > DATE_CHIPS && (
+          <div className="flex items-center gap-2">
+            <Label
+              htmlFor="public-date"
+              className="text-muted-foreground text-xs"
+            >
+              {t("otherDate")}
+            </Label>
+            <Input
+              id="public-date"
+              type="date"
+              min={today}
+              max={lastDate}
+              value={date}
+              onChange={(e) => {
+                const d = e.target.value;
+                if (d >= today && d <= lastDate) change(() => setDate(d));
+              }}
+              className="h-8 w-auto"
+            />
+          </div>
+        )}
+      </fieldset>
+
+      <div className="grid gap-1.5">
+        <Label htmlFor="public-duration">{t("duration")}</Label>
+        <NativeSelect
+          id="public-duration"
+          value={duration}
+          onChange={(e) => change(() => setDuration(Number(e.target.value)))}
+          className="w-full sm:w-60"
+        >
+          {durations.map((m) => (
+            <NativeSelectOption key={m} value={m}>
+              {durationLabel(m)}
+            </NativeSelectOption>
+          ))}
+        </NativeSelect>
+      </div>
+
+      <div className="flex flex-wrap gap-2" role="tablist">
+        {(["map", "list"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => setView(v)}
+            className="aria-selected:border-primary rounded-md border-b-2 border-transparent px-2 py-1 text-sm font-medium"
+          >
+            {v === "map" ? t("viewMap") : t("viewList")}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className={cn("grid gap-3", pending && "opacity-60")}
+        aria-busy={pending}
+        data-testid="availability"
+        data-state={pending || !slots ? "loading" : "ready"}
+      >
+        {failed ? (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <p className="text-destructive">{t("loadError")}</p>
+            <Button variant="outline" size="sm" onClick={load}>
+              {t("retry")}
+            </Button>
+          </div>
+        ) : slots === null ? (
+          <p className="text-muted-foreground text-sm">{t("loading")}</p>
+        ) : slots.length === 0 ? (
+          <p className="text-sm">{t("noSlots")}</p>
+        ) : view === "map" && hall ? (
+          <>
+            {halls.length > 1 && (
+              <div className="flex flex-wrap gap-2">
+                {halls.map((h) => (
+                  <button
+                    key={h.id}
+                    type="button"
+                    aria-pressed={h.id === hall.id}
+                    onClick={() => setHallId(h.id)}
+                    className="hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground rounded-md px-3 py-1.5 text-sm"
+                  >
+                    {h.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <p className="text-muted-foreground text-xs">{t("mapHint")}</p>
+            <div
+              className="relative w-full overflow-hidden rounded-lg border"
+              style={{ aspectRatio: `${hall.width} / ${hall.height}` }}
+            >
+              <HallCanvas
+                hall={hall}
+                items={hallItems(hall)}
+                selectedKey={resourceId}
+                editable={false}
+                statuses={statuses}
+                onSelect={(key) =>
+                  setResourceId(
+                    key && resources.some((r) => r.id === key) ? key : null,
+                  )
+                }
+                onChange={() => {}}
+              />
+            </div>
+            {selected ? (
+              <SlotChips
+                title={
+                  byResource.has(selected.id)
+                    ? t("resourceSlots", { name: selected.name })
+                    : t("resourceBusy", { name: selected.name })
+                }
+                slots={byResource.get(selected.id) ?? []}
+                date={date}
+                timezone={timezone}
+                onPick={pick}
+              />
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                {t("pickResource")}
+              </p>
+            )}
+          </>
+        ) : (
+          <ul className="grid gap-3" data-testid="slot-list">
+            {resources.map((r) => (
+              <li key={r.id} data-resource={r.name} data-testid="slot-resource">
+                <SlotChips
+                  title={r.name}
+                  empty={t("noSlotsResource")}
+                  slots={byResource.get(r.id) ?? []}
+                  date={date}
+                  timezone={timezone}
+                  onPick={pick}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SlotChips({
+  title,
+  empty,
+  slots,
+  date,
+  timezone,
+  onPick,
+}: {
+  title: string;
+  empty?: string;
+  slots: PublicSlot[];
+  date: string;
+  timezone: string;
+  onPick: (slot: PublicSlot) => void;
+}) {
+  const t = useTranslations("PublicBooking");
+  const format = (iso: string) =>
+    new Intl.DateTimeFormat("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: timezone,
+    }).format(new Date(iso));
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">{title}</p>
+      {slots.length === 0 ? (
+        empty && <p className="text-muted-foreground text-sm">{empty}</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {slots.map((s) => (
+            <button
+              key={s.startsAt}
+              type="button"
+              onClick={() => onPick(s)}
+              className="hover:bg-primary hover:text-primary-foreground rounded-md border px-2.5 py-1 text-sm tabular-nums"
+            >
+              {format(s.startsAt)}
+              {/* Ночное окно — уже следующие сутки рабочего дня. */}
+              {todayIn(timezone, new Date(s.startsAt)) !== date && (
+                <span className="text-muted-foreground"> {t("night")}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function hallItems(hall: PublicHall): EditorItem[] {
+  return [
+    ...hall.objects.map((o) => ({ ...o, type: "object" as const, key: o.id })),
+    ...hall.resources.map((r) => ({
+      ...r,
+      type: "resource" as const,
+      key: r.id,
+      is_active: true,
+    })),
+  ];
+}

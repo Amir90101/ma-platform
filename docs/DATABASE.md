@@ -304,6 +304,8 @@ create unique index session_segments_one_open_per_session
 
 Плюс `check`: `ends_at > starts_at`, `amount > 0`, `price_per_hour >= 0`, `slot_step_min in (15, 30, 60)`.
 
+RPC, создающие брони, перед вставкой берут транзакционную блокировку на ресурс (`lock_resource_bookings`, `pg_advisory_xact_lock`). Двойную бронь отсекает ограничение; блокировка нужна, чтобы при одновременной вставке проигравший получил понятный отказ, а не `deadlock_detected`.
+
 ## Права доступа (RLS)
 
 Вспомогательные функции (`security definer`, `stable`):
