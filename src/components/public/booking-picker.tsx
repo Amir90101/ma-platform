@@ -254,13 +254,13 @@ export function BookingPicker({
       {tariffs.length > 0 && (
         <fieldset className="grid gap-2">
           <legend className="mb-2 text-sm font-medium">{t("tariff")}</legend>
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
             {[...tariffs, null].map((p) => {
               const value = p?.id ?? OWN_TIME;
               return (
                 <label
                   key={value}
-                  className="bg-card has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-primary hover:bg-muted/60 flex cursor-pointer items-start gap-3 rounded-xl border p-3 has-checked:ring-1"
+                  className="bg-card has-checked:border-primary has-checked:bg-secondary has-checked:ring-primary hover:bg-muted/60 relative grid cursor-pointer gap-1 rounded-xl border p-4 has-checked:ring-1"
                 >
                   <input
                     type="radio"
@@ -268,21 +268,25 @@ export function BookingPicker({
                     value={value}
                     checked={tariffId === value}
                     onChange={() => change(() => setTariffId(value))}
-                    className="accent-primary mt-1 size-4 shrink-0"
+                    className="accent-primary absolute top-3 right-3 size-4"
                   />
-                  <span className="grid min-w-0 gap-0.5">
-                    <span className="font-medium">
-                      {p ? p.name : t("ownTime")}
-                    </span>
-                    <span className="text-muted-foreground text-sm">
-                      {p
-                        ? t("tariffLine", {
-                            duration: durationLabel(p.minutes),
-                            price: p.price.toLocaleString("ru-RU"),
-                          })
-                        : t("ownTimeHint")}
-                    </span>
+                  <span className="font-semibold">
+                    {p ? p.name : t("ownTime")}
                   </span>
+                  {p ? (
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground text-sm">
+                        {durationLabel(p.minutes)}
+                      </span>
+                      <span className="text-lg font-semibold tabular-nums">
+                        {t("price", { price: p.price.toLocaleString("ru-RU") })}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">
+                      {t("ownTimeHint")}
+                    </span>
+                  )}
                 </label>
               );
             })}

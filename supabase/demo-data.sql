@@ -1,5 +1,6 @@
 -- Живые демо-данные для ручной проверки: неделя смен с сеансами и
--- оплатами, открытая смена с занятыми столами, брони на сегодня и завтра.
+-- оплатами, открытая смена с занятыми столами, брони на сегодня и завтра;
+-- PS-клуб с тарифами на время.
 -- Не входит в seed.sql: тесты рассчитывают на чистый seed.
 --
 -- Запуск после `supabase db reset`:
@@ -148,5 +149,15 @@ insert into public.bookings (venue_id, resource_id, customer_id, starts_at, ends
   ((select venue from demo), pg_temp.table_id(8), 'dddddddd-dddd-0000-0000-000000000005',
    pg_temp.at((select today from demo) + 1, '18:00'), pg_temp.at((select today from demo) + 1, '20:00'),
    pg_temp.at((select today from demo) + 1, '20:00'), 'phone', 6, 'Корпоратив');
+
+-- PS-клуб (owner2@demo.local): цена за час, тарифы на время, публикация.
+update public.venues set is_published = true where id = 'bbbbbbbb-1111-0000-0000-000000000001';
+insert into public.tariffs (venue_id, name, resource_kinds, price_per_hour, weekdays, time_from, time_to)
+values ('bbbbbbbb-1111-0000-0000-000000000001', 'Каждый день', '{ps_zone}', 1200,
+        '{1,2,3,4,5,6,7}', '12:00', '04:00');
+insert into public.packages (venue_id, name, resource_kinds, minutes, price) values
+  ('bbbbbbbb-1111-0000-0000-000000000001', '1 час', '{ps_zone}', 60, 1200),
+  ('bbbbbbbb-1111-0000-0000-000000000001', '3 часа', '{ps_zone}', 180, 3000),
+  ('bbbbbbbb-1111-0000-0000-000000000001', '5 часов', '{ps_zone}', 300, 4500);
 
 commit;

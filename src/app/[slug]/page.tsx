@@ -83,7 +83,7 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
     <div className="flex flex-1 flex-col">
       <main className="flex-1">
         {/* Обложка: первое фото, поверх — название и адрес. */}
-        <section className="bg-sidebar relative isolate overflow-hidden">
+        <section className="bg-foreground relative isolate overflow-hidden">
           <div className="absolute inset-0 -z-10" data-testid="public-photos">
             {cover && (
               <Image

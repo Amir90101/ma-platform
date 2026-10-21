@@ -37,23 +37,20 @@ async function VenueShell({
 
   return (
     <div className="flex flex-1">
-      <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-svh w-64 shrink-0 flex-col gap-6 p-4 lg:flex">
+      <aside className="bg-sidebar text-sidebar-foreground border-sidebar-border sticky top-0 hidden h-svh w-64 shrink-0 flex-col gap-6 border-r p-4 lg:flex">
         <Link
           href="/app"
           aria-label={tCommon("productName")}
           className="px-2 pt-1"
         >
-          <Logo
-            name={tCommon("productName")}
-            className="text-sidebar-accent-foreground"
-          />
+          <Logo name={tCommon("productName")} className="text-foreground" />
         </Link>
         {access && (
-          <div className="bg-sidebar-accent/50 rounded-lg px-3 py-2.5">
-            <p className="text-sidebar-foreground/60 text-xs">
+          <div className="bg-muted rounded-lg px-3 py-2.5">
+            <p className="text-muted-foreground text-xs">
               {tVenue(`types.${access.venue.type}`)}
             </p>
-            <p className="text-sidebar-accent-foreground truncate font-semibold">
+            <p className="text-foreground truncate font-semibold">
               {access.venue.name}
             </p>
           </div>
@@ -61,7 +58,7 @@ async function VenueShell({
         {access && <SidebarNav venueId={venueId} items={items} />}
         <Link
           href="/app"
-          className="text-sidebar-foreground/60 hover:text-sidebar-accent-foreground mt-auto flex items-center gap-2 px-3 py-2 text-sm"
+          className="text-muted-foreground hover:text-foreground mt-auto flex items-center gap-2 px-3 py-2 text-sm"
         >
           <ChevronLeft aria-hidden="true" className="size-4" />
           {t("allVenues")}
@@ -104,10 +101,10 @@ async function ShellFallback() {
   const tCommon = await getTranslations("Common");
   return (
     <div className="flex flex-1">
-      <aside className="bg-sidebar hidden h-svh w-64 shrink-0 p-4 lg:block">
+      <aside className="bg-sidebar border-sidebar-border hidden h-svh w-64 shrink-0 border-r p-4 lg:block">
         <Logo
           name={tCommon("productName")}
-          className="text-sidebar-accent-foreground px-2 pt-1"
+          className="text-foreground px-2 pt-1"
         />
       </aside>
       <div className="flex-1" />
