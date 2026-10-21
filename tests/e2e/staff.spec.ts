@@ -29,6 +29,7 @@ test("приглашённый администратор задаёт паро�
   await login(page, OWNER.email, OWNER.password);
   await expect(page).toHaveURL("/app");
   await page.getByRole("link", { name: /Демо Бильярд/ }).click();
+  await page.getByRole("link", { name: "Настройки" }).click();
   await page.getByRole("link", { name: "Сотрудники" }).click();
   await expect(page).toHaveURL(`/app/${VENUE_ID}/settings/staff`);
 

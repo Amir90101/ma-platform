@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import {
   deletePackage,
   deleteTariff,
@@ -97,10 +98,7 @@ async function Tariffs({
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("hint")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("hint")} />
 
       <Card>
         <CardContent className="grid gap-6">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { inviteAdmin, removeAdmin } from "@/app/app/staff-actions";
 import { InviteForm } from "@/components/staff/invite-form";
 import { Button } from "@/components/ui/button";
@@ -41,11 +42,8 @@ async function Staff({
   });
 
   return (
-    <>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("hint")}</p>
-      </div>
+    <div className="grid max-w-3xl gap-6">
+      <PageHeader title={t("title")} description={t("hint")} />
 
       <Card>
         <CardContent>
@@ -92,6 +90,6 @@ async function Staff({
           </ul>
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

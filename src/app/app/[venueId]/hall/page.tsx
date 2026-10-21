@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { PencilRuler } from "lucide-react";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { HallView } from "@/components/hall/hall-view";
+import { buttonVariants } from "@/components/ui/button";
 import { loadHallLayout } from "@/lib/hall/load";
 import { loadOpenSessions } from "@/lib/hall/open-sessions";
 import { loadUpcomingBookings } from "@/lib/hall/upcoming-bookings";
@@ -82,34 +85,21 @@ async function HallViewContent({
 
   return (
     <>
-      <Link
-        href={`/app/${venue.id}`}
-        className="text-muted-foreground text-sm hover:underline"
-      >
-        {tVenue("home.backToVenue")}
-      </Link>
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-semibold">{venue.name}</h1>
-          <p className="text-muted-foreground text-sm">{t("viewHint")}</p>
-        </div>
-        <div className="flex gap-4">
-          <Link
-            href={`/app/${venue.id}/bookings`}
-            className="text-sm hover:underline"
-          >
-            {t("bookingsLink")}
-          </Link>
-          {isOwner && (
+      <PageHeader
+        title={t("viewTitle")}
+        description={t("viewHint")}
+        actions={
+          isOwner && (
             <Link
               href={`/app/${venue.id}/settings/hall${hall ? `?hall=${hall.id}` : ""}`}
-              className="text-sm hover:underline"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
             >
+              <PencilRuler aria-hidden="true" />
               {t("openEditor")}
             </Link>
-          )}
-        </div>
-      </div>
+          )
+        }
+      />
       {hall ? (
         <HallView
           venueId={venue.id}

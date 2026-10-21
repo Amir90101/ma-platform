@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { BookingFeed } from "@/components/bookings/booking-feed";
 import { BookingForm } from "@/components/bookings/booking-form";
 import { buttonVariants } from "@/components/ui/button";
@@ -91,100 +93,98 @@ async function Bookings({
 
   return (
     <>
-      <Link
-        href={`/app/${venue.id}`}
-        className="text-muted-foreground text-sm hover:underline"
-      >
-        {tVenue("home.backToVenue")}
-      </Link>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("hint")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("hint")} />
 
-      <nav className="flex flex-wrap items-end gap-2" aria-label={t("date")}>
-        <Link
-          href={href(addDays(date, -1))}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          {t("prevDay")}
-        </Link>
-        {date !== today && (
+      <nav
+        className="bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-2 shadow-xs"
+        aria-label={t("date")}
+      >
+        <div className="flex min-w-0 items-center gap-1">
           <Link
-            href={href(today)}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
+            href={href(addDays(date, -1))}
+            aria-label={t("prevDay")}
+            className={buttonVariants({ variant: "ghost", size: "icon" })}
           >
-            {t("today")}
+            <ChevronLeft aria-hidden="true" />
           </Link>
-        )}
-        <Link
-          href={href(addDays(date, 1))}
-          className={buttonVariants({ variant: "outline", size: "sm" })}
-        >
-          {t("nextDay")}
-        </Link>
+          <h2
+            className="min-w-0 truncate px-1 text-base font-semibold first-letter:uppercase sm:text-lg"
+            data-testid="feed-date"
+          >
+            {dateLabel}
+          </h2>
+          <Link
+            href={href(addDays(date, 1))}
+            aria-label={t("nextDay")}
+            className={buttonVariants({ variant: "ghost", size: "icon" })}
+          >
+            <ChevronRight aria-hidden="true" />
+          </Link>
+          {date !== today && (
+            <Link
+              href={href(today)}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              {t("today")}
+            </Link>
+          )}
+        </div>
         {/* Обычная GET-форма: работает и до загрузки скриптов. */}
         <form
-          className="flex items-end gap-2"
+          className="flex items-center gap-2"
           action={`/app/${venue.id}/bookings`}
         >
-          <div className="grid gap-1">
-            <Label htmlFor="feed-date" className="text-xs">
-              {t("date")}
-            </Label>
-            <Input
-              id="feed-date"
-              type="date"
-              name="date"
-              defaultValue={date}
-              className="h-7"
-            />
-          </div>
+          <Label htmlFor="feed-date" className="sr-only">
+            {t("date")}
+          </Label>
+          <Input
+            id="feed-date"
+            type="date"
+            name="date"
+            defaultValue={date}
+            className="h-9 w-auto"
+          />
           <button
             type="submit"
-            className={buttonVariants({ variant: "secondary", size: "sm" })}
+            className={buttonVariants({ variant: "secondary" })}
           >
             {t("show")}
           </button>
         </form>
       </nav>
 
-      <h2
-        className="text-lg font-medium first-letter:uppercase"
-        data-testid="feed-date"
-      >
-        {dateLabel}
-      </h2>
-      <BookingFeed
-        venueId={venue.id}
-        date={date}
-        timezone={timezone}
-        now={renderedAt}
-        resources={options}
-        bookings={(bookings ?? []).map((b) => ({
-          id: b.id,
-          resourceId: b.resource_id,
-          customerName: b.customer_name,
-          customerPhone: b.customer_phone,
-          noShowCount: b.no_show_count,
-          startsAt: b.starts_at,
-          endsAt: b.ends_at,
-          status: b.status,
-          source: b.source,
-          guests: b.guests,
-          comment: b.comment,
-          cancelReason: b.cancel_reason,
-          cancelledByGuest: b.cancelled_by_guest,
-        }))}
-      />
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+        <BookingFeed
+          venueId={venue.id}
+          date={date}
+          timezone={timezone}
+          now={renderedAt}
+          resources={options}
+          bookings={(bookings ?? []).map((b) => ({
+            id: b.id,
+            resourceId: b.resource_id,
+            customerName: b.customer_name,
+            customerPhone: b.customer_phone,
+            noShowCount: b.no_show_count,
+            startsAt: b.starts_at,
+            endsAt: b.ends_at,
+            status: b.status,
+            source: b.source,
+            guests: b.guests,
+            comment: b.comment,
+            cancelReason: b.cancel_reason,
+            cancelledByGuest: b.cancelled_by_guest,
+          }))}
+        />
 
-      <BookingForm
-        key={date}
-        venueId={venue.id}
-        date={date}
-        timezone={timezone}
-        resources={options.filter((r) => r.isActive)}
-      />
+        <BookingForm
+          key={date}
+          venueId={venue.id}
+          date={date}
+          timezone={timezone}
+          resources={options.filter((r) => r.isActive)}
+        />
+      </div>
     </>
   );
 }

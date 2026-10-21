@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { updateVenue } from "@/app/app/actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VenueForm } from "@/components/venue/venue-form";
@@ -103,11 +104,8 @@ async function VenueSettings({
   ] as const;
 
   return (
-    <>
-      <div>
-        <h1 className="text-2xl font-semibold">{venue.name}</h1>
-        <p className="text-muted-foreground">{t("settingsTitle")}</p>
-      </div>
+    <div className="grid max-w-3xl gap-6">
+      <PageHeader title={venue.name} description={t("settingsTitle")} />
 
       <Card>
         <CardHeader>
@@ -176,6 +174,6 @@ async function VenueSettings({
           />
         </CardContent>
       </Card>
-    </>
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { CalendarX2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import {
   arriveBooking,
@@ -48,12 +49,18 @@ export type FeedBooking = {
 const REALTIME_TABLES = ["bookings"] as const;
 
 const STATUS_TONE: Record<BookingStatus, string> = {
-  confirmed: "bg-sky-100 text-sky-900 dark:bg-sky-950 dark:text-sky-200",
-  arrived:
-    "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200",
+  confirmed: "bg-status-booked-soft text-status-booked",
+  arrived: "bg-status-free-soft text-status-free",
   completed: "bg-muted text-muted-foreground",
   cancelled: "bg-muted text-muted-foreground",
-  no_show: "bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-200",
+  no_show: "bg-status-paused-soft text-status-paused",
+};
+const STATUS_BAR: Record<BookingStatus, string> = {
+  confirmed: "bg-status-booked",
+  arrived: "bg-status-free",
+  completed: "bg-border",
+  cancelled: "bg-border",
+  no_show: "bg-status-paused",
 };
 
 // Лента дня по столам. Изменения броней в других окнах приходят через
@@ -91,7 +98,10 @@ export function BookingFeed({
         <span>{realtime === "on" ? t("live") : t("connecting")}</span>
       </p>
       {bookings.length === 0 ? (
-        <p className="text-muted-foreground">{t("empty")}</p>
+        <div className="text-muted-foreground grid justify-items-center gap-2 rounded-xl border border-dashed px-6 py-12 text-center">
+          <CalendarX2 aria-hidden="true" className="size-8" />
+          <p>{t("empty")}</p>
+        </div>
       ) : (
         resources
           .filter((r) => byResource.has(r.id))
@@ -102,7 +112,7 @@ export function BookingFeed({
               data-testid="feed-resource"
               data-resource={r.name}
             >
-              <h3 className="font-medium">
+              <h3 className="text-muted-foreground text-sm font-semibold tracking-wide uppercase">
                 {r.name}
                 {r.hallName && (
                   <span className="text-muted-foreground font-normal">
@@ -166,14 +176,18 @@ function BookingItem({
   return (
     <li
       className={cn(
-        "grid gap-1.5 rounded-lg border p-3 text-sm",
+        "bg-card relative grid gap-1.5 overflow-hidden rounded-xl border py-3 pr-3 pl-4 text-sm shadow-xs",
         inactive && "opacity-70",
       )}
       data-testid="feed-booking"
       data-status={b.status}
     >
+      <span
+        aria-hidden="true"
+        className={cn("absolute inset-y-0 left-0 w-1", STATUS_BAR[b.status])}
+      />
       <p className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-base font-medium tabular-nums">
+        <span className="text-base font-semibold tabular-nums">
           {time(b.startsAt)}–{time(b.endsAt)}
           {otherDay && (
             <span className="text-muted-foreground text-sm font-normal">
@@ -184,7 +198,7 @@ function BookingItem({
         </span>
         <span
           className={cn(
-            "rounded-md px-2 py-0.5 text-xs font-medium",
+            "rounded-full px-2.5 py-0.5 text-xs font-medium",
             STATUS_TONE[b.status],
           )}
           data-testid="booking-status"

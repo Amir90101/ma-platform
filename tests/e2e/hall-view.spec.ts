@@ -27,12 +27,27 @@ test("администратор видит карту зала, но фигур
   const canvas = page.getByTestId("hall-canvas");
   await canvas.scrollIntoViewIfNeeded();
   await expect(canvas.locator("canvas").first()).toBeVisible();
-  const box = (await canvas.boundingBox())!;
-  const scale = box.width / 1200;
-  const center = { x: box.x + 190 * scale, y: box.y + 170 * scale };
+  const tableCenter = async () => {
+    const box = (await canvas.boundingBox())!;
+    const scale = box.width / 1200;
+    return {
+      x: box.x + 190 * scale,
+      y: box.y + 170 * scale,
+      scale,
+    };
+  };
 
-  // Выбираем стол, снимаем холст, тянем и сравниваем: картинка та же.
+  // Выбираем стол. На телефоне страница прокручивается к панели стола —
+  // возвращаем холст в кадр и меряем заново.
+  let center = await tableCenter();
   await page.mouse.click(center.x, center.y);
+  await expect(page.getByTestId("resource-panel")).toContainText("Стол 1");
+  await page.waitForTimeout(800);
+  await canvas.scrollIntoViewIfNeeded();
+  center = await tableCenter();
+  const { scale } = center;
+
+  // Снимаем холст, тянем и сравниваем: картинка та же.
   const before = await canvas.screenshot();
   await page.mouse.move(center.x, center.y);
   await page.mouse.down();

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/app-shell/page-header";
 import { getVenueAccess } from "@/lib/venue-access";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -94,16 +94,7 @@ async function Audit({
 
   return (
     <>
-      <Link
-        href={`/app/${venue.id}`}
-        className="text-muted-foreground text-sm hover:underline"
-      >
-        {tVenue("home.backToVenue")}
-      </Link>
-      <div>
-        <h1 className="text-2xl font-semibold">{t("title")}</h1>
-        <p className="text-muted-foreground text-sm">{t("hint")}</p>
-      </div>
+      <PageHeader title={t("title")} description={t("hint")} />
       {rows?.length ? (
         <ul className="divide-y rounded-lg border" data-testid="audit-list">
           {rows.map((row) => {
