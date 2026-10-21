@@ -15,7 +15,7 @@ export async function SetupChecklist({ steps }: { steps: SetupStep[] }) {
   const done = steps.filter((s) => s.done).length;
   return (
     <section
-      className="bg-card grid gap-4 rounded-xl border p-5 shadow-xs"
+      className="bg-card shadow-card grid gap-4 rounded-2xl p-5"
       data-testid="setup-checklist"
     >
       <div className="flex flex-wrap items-end justify-between gap-2">

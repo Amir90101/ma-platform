@@ -225,7 +225,7 @@ async function VenueHome({
       )}
 
       {isOwner && info && (
-        <section className="bg-card flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4 shadow-xs">
+        <section className="bg-card shadow-card flex flex-wrap items-center justify-between gap-4 rounded-2xl p-4">
           <div className="flex items-start gap-3">
             <span
               aria-hidden="true"
@@ -261,7 +261,7 @@ async function VenueHome({
       {isOwner && (
         <Link
           href={`${base}/audit`}
-          className="bg-card flex items-center justify-between gap-3 rounded-xl border p-4 text-sm font-medium shadow-xs lg:hidden"
+          className="bg-card shadow-card flex items-center justify-between gap-3 rounded-2xl p-4 text-sm font-medium lg:hidden"
         >
           <span className="flex items-center gap-3">
             <ScrollText

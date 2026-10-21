@@ -50,12 +50,14 @@ export default async function GuestBookingPage({
 }: PageProps<"/b/[token]">) {
   const t = await getTranslations("GuestBooking");
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-4 py-8">
-      <Suspense
-        fallback={<p className="text-muted-foreground">{t("loading")}</p>}
-      >
-        <GuestBookingContent params={params} />
-      </Suspense>
+    <main className="public-dark dark bg-background text-foreground flex-1 px-4 py-8">
+      <div className="mx-auto w-full max-w-md">
+        <Suspense
+          fallback={<p className="text-muted-foreground">{t("loading")}</p>}
+        >
+          <GuestBookingContent params={params} />
+        </Suspense>
+      </div>
     </main>
   );
 }
@@ -87,14 +89,14 @@ async function GuestBookingContent({
 
   return (
     <article
-      className="bg-card grid gap-5 rounded-2xl border p-6 shadow-sm"
+      className="bg-card grid gap-5 rounded-3xl p-6"
       data-testid="guest-booking"
     >
       <header className="grid gap-1">
         <p className="text-muted-foreground text-sm">
           {t("code", { code: booking.code })}
         </p>
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-2xl font-bold">
           <Link href={`/${venue.slug}`} className="hover:underline">
             {venue.name}
           </Link>
@@ -112,7 +114,7 @@ async function GuestBookingContent({
         </p>
       </header>
 
-      <dl className="bg-muted/50 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 rounded-xl p-4 text-sm">
+      <dl className="bg-muted grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 rounded-xl p-4 text-sm">
         <dt className="text-muted-foreground">{t("when")}</dt>
         <dd className="first-letter:uppercase">
           {date}, {time(booking.starts_at)}–{time(booking.ends_at)}

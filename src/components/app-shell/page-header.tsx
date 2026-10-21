@@ -25,7 +25,7 @@ export function PageHeader({
         {eyebrow && (
           <div className="text-muted-foreground text-sm">{eyebrow}</div>
         )}
-        <h1 className="text-2xl font-semibold sm:text-3xl">{title}</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl">{title}</h1>
         {description && (
           <p className="text-muted-foreground max-w-2xl text-sm">
             {description}
@@ -58,19 +58,15 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 rounded-xl border p-4 shadow-xs",
-        tone === "primary"
-          ? "bg-primary text-primary-foreground border-transparent"
-          : "bg-card",
+        "shadow-card flex flex-col gap-3 rounded-2xl p-5",
+        tone === "primary" ? "bg-sidebar text-white" : "bg-card",
       )}
     >
       <div className="flex items-start justify-between gap-2">
         <p
           className={cn(
             "text-sm font-medium",
-            tone === "primary"
-              ? "text-primary-foreground/80"
-              : "text-muted-foreground",
+            tone === "primary" ? "text-white/70" : "text-muted-foreground",
           )}
         >
           {label}
@@ -79,10 +75,10 @@ export function StatCard({
           <span
             aria-hidden="true"
             className={cn(
-              "grid size-8 place-items-center rounded-lg [&_svg]:size-4",
+              "grid size-10 place-items-center rounded-xl [&_svg]:size-5",
               tone === "primary"
-                ? "bg-primary-foreground/15"
-                : "bg-secondary text-secondary-foreground",
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-primary",
             )}
           >
             {icon}
@@ -91,7 +87,7 @@ export function StatCard({
       </div>
       <div>
         <p
-          className="text-2xl font-semibold tracking-tight tabular-nums"
+          className="text-3xl font-bold tracking-tight tabular-nums"
           data-testid={testId}
         >
           {value}
@@ -100,9 +96,7 @@ export function StatCard({
           <p
             className={cn(
               "mt-1 text-sm",
-              tone === "primary"
-                ? "text-primary-foreground/80"
-                : "text-muted-foreground",
+              tone === "primary" ? "text-white/70" : "text-muted-foreground",
             )}
           >
             {hint}

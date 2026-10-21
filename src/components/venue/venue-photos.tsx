@@ -81,6 +81,22 @@ export function VenuePhotos({
     startTransition(() => router.refresh());
   }
 
+  // Обложка — первое фото: переставляем выбранное в начало.
+  async function makeCover(photo: VenuePhoto) {
+    setError(undefined);
+    setBusy(true);
+    const supabase = createClient();
+    const order = [photo, ...photos.filter((p) => p.id !== photo.id)];
+    const results = await Promise.all(
+      order.map((p, sort) =>
+        supabase.from("venue_photos").update({ sort }).eq("id", p.id),
+      ),
+    );
+    if (results.some((r) => r.error)) setError("photoCover");
+    setBusy(false);
+    startTransition(() => router.refresh());
+  }
+
   return (
     <div className="grid gap-4">
       <p className="text-muted-foreground text-sm">{t("photosHint")}</p>
@@ -97,8 +113,25 @@ export function VenuePhotos({
                 height={240}
                 // Файлы отдаёт Storage; оптимизатор Next им не нужен.
                 unoptimized
-                className="bg-muted aspect-4/3 w-full rounded-lg object-cover"
+                className="bg-muted aspect-4/3 w-full rounded-xl object-cover"
               />
+              {i === 0 ? (
+                <span className="bg-primary text-primary-foreground absolute bottom-2 left-2 rounded-full px-2.5 py-1 text-xs font-semibold">
+                  {t("cover")}
+                </span>
+              ) : (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="absolute bottom-2 left-2"
+                  disabled={busy}
+                  onClick={() => makeCover(photo)}
+                  aria-label={`${t("makeCover")} ${i + 1}`}
+                >
+                  {t("makeCover")}
+                </Button>
+              )}
               <Button
                 type="button"
                 variant="secondary"

@@ -187,7 +187,7 @@
     "stepDone": "готово",
     "stepTodo": "не заполнено",
     "photosTitle": "Фото",
-    "photosHint": "JPEG, PNG или WebP, до 5 МБ. Первое фото — обложка страницы.",
+    "photosHint": "JPEG, PNG или WebP, до 5 МБ. Обложка — первое фото на странице заведения, остальные гость листает.",
     "photosEmpty": "Фото пока нет.",
     "addPhotos": "Добавить фото",
     "uploading": "Загружаем…",
@@ -212,7 +212,8 @@
       "photoUpload": "Не удалось загрузить фото, попробуйте ещё раз",
       "photoDelete": "Не удалось удалить фото",
       "forbidden": "Менять настройки может только владелец",
-      "unknown": "Что-то пошло не так, попробуйте ещё раз"
+      "unknown": "Что-то пошло не так, попробуйте ещё раз",
+      "photoCover": "Не удалось сменить обложку"
     },
     "home": {
       "settings": "Настройки",
@@ -227,7 +228,9 @@
       "bookingRules": "Правила брони",
       "publicPage": "Публичная страница",
       "reports": "Отчёты"
-    }
+    },
+    "cover": "Обложка",
+    "makeCover": "Сделать обложкой"
   },
   "Staff": {
     "title": "Сотрудники",
@@ -617,7 +620,7 @@
     "perHour": "{price} ₸/ч",
     "tariffWhen": "{days}, {from}–{to}",
     "allDay": "круглосуточно",
-    "packagesTitle": "Пакеты",
+    "packagesTitle": "Тарифы на время",
     "packageLine": "{minutes, plural, one {# минута} few {# минуты} many {# минут} other {# минуты}} — {price} ₸",
     "rulesTitle": "Правила брони",
     "rulePayOnSite": "Оплата на месте, предоплата не нужна.",
@@ -628,7 +631,13 @@
     "bookingOff": "Онлайн-бронь сейчас выключена. Позвоните, чтобы забронировать.",
     "poweredBy": "Работает на {product}",
     "todayHours": "Сегодня открыто {from}–{to}",
-    "todayClosed": "Сегодня выходной"
+    "todayClosed": "Сегодня выходной",
+    "photoCounter": "{n} / {total}",
+    "prevPhoto": "Предыдущее фото",
+    "nextPhoto": "Следующее фото",
+    "showPhoto": "Показать фото {n}",
+    "infoTitle": "О заведении",
+    "openToday": "Сегодня {from}–{to}"
   },
   "PublicBooking": {
     "title": "Забронировать",
@@ -639,17 +648,10 @@
     "tomorrow": "Завтра",
     "duration": "Сколько по времени",
     "durationValue": "{hours, plural, =0 {} other {# ч}}{minutes, plural, =0 {} other { # мин}}",
-    "viewMap": "Схема зала",
-    "viewList": "Список",
     "loading": "Ищем свободное время…",
     "loadError": "Не получилось загрузить свободное время. Попробуйте ещё раз.",
     "retry": "Обновить",
-    "noSlots": "На это время всё занято. Попробуйте другую дату или длительность.",
-    "noSlotsResource": "Нет свободного времени",
-    "mapHint": "Зелёные — свободны на эту длительность, серые — заняты или не бронируются онлайн. Нажмите на свободный.",
-    "pickResource": "Выберите место на схеме.",
-    "resourceSlots": "{name}: начало брони",
-    "resourceBusy": "{name}: на эту дату и длительность занято.",
+    "noSlots": "На эту дату свободного времени нет. Попробуйте другой день или тариф.",
     "night": "ночь",
     "selected": "{resource} · {date} · {from}–{to}",
     "change": "Изменить",
@@ -692,10 +694,30 @@
     },
     "tariff": "Тариф",
     "ownTime": "Своё время",
-    "ownTimeHint": "Выберите, сколько часов",
-    "tariffLine": "{duration} · {price} ₸",
     "selectedTariff": "{name}, {price} ₸",
-    "price": "{price} ₸"
+    "price": "{price} ₸",
+    "stepsLabel": "Шаги брони",
+    "step": {
+      "when": "Дата и время",
+      "seat": "Место",
+      "guest": "Контакты"
+    },
+    "stepWhen": "Дата и время",
+    "modeTariffs": "Тарифы",
+    "start": "Начало",
+    "freeCount": "{count, plural, one {# место} few {# места} many {# мест} other {# места}}",
+    "chooseTime": "Выберите время начала",
+    "chooseSeat": "Выбрать место",
+    "back": "Назад к дате и времени",
+    "seatsTitle": "Места на это время",
+    "legendFree": "Свободно",
+    "legendBusy": "Занято",
+    "legendPicked": "Выбрано",
+    "pickSeat": "Нажмите на свободное место на схеме или в списке.",
+    "seatPicked": "Вы выбрали: {name}",
+    "seatTaken": "{name} на это время занято. Выберите другое место.",
+    "next": "Далее",
+    "yourBooking": "Ваша бронь"
   },
   "GuestBooking": {
     "title": "Ваша бронь",

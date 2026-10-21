@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   BookingPicker,
   type PickedSlot,
+  Steps,
   usePickedSummary,
 } from "./booking-picker";
 import { BookingDonePanel, type BookingDone, GuestForm } from "./guest-form";
@@ -63,11 +65,14 @@ export function PublicBooking({
   }
 
   return (
-    <div ref={top} className="grid scroll-mt-4 gap-3">
-      {/* Выбор остаётся смонтированным: «Изменить» возвращает дату и длительность. */}
-      <div hidden={picked !== null}>
+    <div ref={top} className="grid min-w-0 scroll-mt-4 gap-6">
+      {/* Выбор остаётся смонтированным: «Изменить» возвращает к месту. */}
+      <div hidden={picked !== null} className="min-w-0">
         {slotGone && (
-          <p className="text-destructive mb-3 text-sm" data-testid="slot-gone">
+          <p
+            className="bg-secondary text-secondary-foreground mb-4 rounded-xl p-3 text-sm"
+            data-testid="slot-gone"
+          >
             {t("errors.slot_unavailable")}
           </p>
         )}
@@ -82,14 +87,22 @@ export function PublicBooking({
       </div>
       {picked && (
         <>
-          <div
-            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-            data-testid="picked-slot"
-          >
-            <p className="font-medium">{summary(picked)}</p>
-            <Button variant="outline" size="sm" onClick={() => setPicked(null)}>
-              {t("change")}
+          <Steps step="guest" />
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon-lg"
+              onClick={() => setPicked(null)}
+              aria-label={t("change")}
+            >
+              <ArrowLeft />
             </Button>
+            <div className="min-w-0" data-testid="picked-slot">
+              <p className="text-muted-foreground text-xs">
+                {t("yourBooking")}
+              </p>
+              <p className="font-semibold">{summary(picked)}</p>
+            </div>
           </div>
           <GuestForm
             key={`${picked.resourceId}-${picked.startsAt}`}

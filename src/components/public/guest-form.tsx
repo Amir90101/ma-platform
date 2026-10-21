@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import type {
   PublicBookingInput,
   PublicBookingResponse,
 } from "@/lib/validation/public-booking";
-import type { PickedSlot } from "./booking-picker";
+import { type PickedSlot, StickyAction } from "./booking-picker";
 import { Turnstile } from "./turnstile";
 
 const SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
@@ -80,14 +81,14 @@ export function GuestForm({
 
   return (
     <form
-      className="grid gap-3"
+      className="grid gap-4"
       data-testid="guest-form"
       onSubmit={(e) => {
         e.preventDefault();
         submit(e.currentTarget);
       }}
     >
-      <h3 className="font-medium">{t("formTitle")}</h3>
+      <h3 className="text-lg font-bold">{t("formTitle")}</h3>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="grid gap-1.5">
           <Label htmlFor="guest-name">{t("name")}</Label>
@@ -135,13 +136,16 @@ export function GuestForm({
       <p className="text-muted-foreground text-sm">
         {t("rules", { minutes: noShowAfterMin })}
       </p>
-      <label htmlFor="guest-consent" className="flex items-start gap-2 text-sm">
+      <label
+        htmlFor="guest-consent"
+        className="bg-muted flex items-start gap-3 rounded-xl p-3 text-sm"
+      >
         <input
           id="guest-consent"
           type="checkbox"
           name="consent"
           required
-          className="mt-0.5 size-4"
+          className="accent-primary mt-0.5 size-4 shrink-0"
         />
         <span>{t("consent")}</span>
       </label>
@@ -153,15 +157,16 @@ export function GuestForm({
           {t(`errors.${error}`)}
         </p>
       )}
-      <div>
+      <StickyAction>
         <Button
           type="submit"
           size="lg"
+          className="w-full"
           disabled={pending || !hydrated || (Boolean(SITE_KEY) && !token)}
         >
           {pending ? t("submitting") : t("submit")}
         </Button>
-      </div>
+      </StickyAction>
     </form>
   );
 }
@@ -181,21 +186,33 @@ export function BookingDonePanel({
   const path = `/b/${done.token}`;
   return (
     <div
-      className="grid gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950"
+      className="grid gap-4 text-center"
       data-testid="booking-done"
       role="status"
     >
-      <h3 className="text-lg font-semibold">{t("doneTitle")}</h3>
-      <p className="font-medium">{summary}</p>
-      <p data-testid="booking-code">{t("doneCode", { code: done.code })}</p>
-      <p className="text-sm">{t("doneLink")}</p>
-      <div className="flex flex-wrap gap-2">
-        <Link href={path} className={buttonVariants()}>
+      <span
+        aria-hidden="true"
+        className="bg-success/15 text-success mx-auto grid size-16 place-items-center rounded-full"
+      >
+        <Check className="size-8" strokeWidth={3} />
+      </span>
+      <h3 className="text-2xl font-bold">{t("doneTitle")}</h3>
+      <p className="font-semibold">{summary}</p>
+      <p
+        className="bg-muted mx-auto rounded-xl px-4 py-2 font-mono text-lg font-semibold"
+        data-testid="booking-code"
+      >
+        {t("doneCode", { code: done.code })}
+      </p>
+      <p className="text-muted-foreground text-sm">{t("doneLink")}</p>
+      <div className="grid gap-2 sm:flex sm:justify-center">
+        <Link href={path} className={buttonVariants({ size: "lg" })}>
           {t("openBooking")}
         </Link>
         <Button
           type="button"
           variant="outline"
+          size="lg"
           onClick={async () => {
             await navigator.clipboard?.writeText(
               `${window.location.origin}${path}`,
@@ -205,7 +222,7 @@ export function BookingDonePanel({
         >
           {copied ? t("copied") : t("copyLink")}
         </Button>
-        <Button type="button" variant="ghost" onClick={onAnother}>
+        <Button type="button" variant="ghost" size="lg" onClick={onAnother}>
           {t("bookAnother")}
         </Button>
       </div>

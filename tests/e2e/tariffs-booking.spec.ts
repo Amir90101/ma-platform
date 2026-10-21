@@ -85,13 +85,21 @@ test("гость бронирует по тарифу", async ({ page }) => {
   const picker = page.getByTestId("booking-picker");
   // Первый тариф выбран сразу, длительность не спрашиваем.
   await expect(picker.getByRole("radio", { name: /3 часа/ })).toBeChecked();
-  await expect(picker.getByLabel("Сколько по времени")).toHaveCount(0);
-  await picker.getByRole("button", { name: "Завтра" }).click();
-  await picker.getByRole("tab", { name: "Список" }).click();
+  await expect(
+    picker.getByRole("group", { name: "Сколько по времени" }),
+  ).toHaveCount(0);
+  await picker.getByRole("button", { name: "Завтра", exact: true }).click();
   await page
-    .locator('[data-testid="slot-resource"][data-resource="Стол 1"]')
-    .getByRole("button", { name: /^12:00$/ })
+    .getByTestId("time-slots")
+    .getByRole("button")
+    .filter({ hasText: /^12:00/ })
     .click();
+  await picker.getByRole("button", { name: "Выбрать место" }).click();
+  await page
+    .getByTestId("seat-list")
+    .getByRole("button", { name: "Стол 1", exact: true })
+    .click();
+  await picker.getByRole("button", { name: "Далее" }).click();
   await expect(page.getByTestId("picked-slot")).toContainText(
     "3 часа, 4 000 ₸ · Стол 1 · Завтра · 12:00–15:00",
   );

@@ -5,10 +5,18 @@ import { registerOwner, uniqueEmail } from "./helpers";
 
 const TOMORROW = addDays(todayIn("Asia/Almaty"), 1);
 
-function slotsOf(page: Page, table: string) {
+function times(page: Page) {
+  return page.getByTestId("time-slots").getByRole("button");
+}
+
+function time(page: Page, value: string) {
+  return times(page).filter({ hasText: new RegExp(`^${value}`) });
+}
+
+function seat(page: Page, table: string) {
   return page
-    .locator(`[data-testid="slot-resource"][data-resource="${table}"]`)
-    .getByRole("button");
+    .getByTestId("seat-list")
+    .getByRole("button", { name: table, exact: true });
 }
 
 // Проверка 6.3: стол, занятый бронью в админке, теряет это окно на
@@ -24,17 +32,14 @@ test("гость видит свободные окна; бронь из адм�
   await page.goto(`/${venue.slug}`);
   await page.getByRole("link", { name: "Забронировать" }).click();
   const picker = page.getByTestId("booking-picker");
-  await picker.getByRole("button", { name: "Завтра" }).click();
-  await picker.getByRole("tab", { name: "Список" }).click();
+  await picker.getByRole("button", { name: "Завтра", exact: true }).click();
   await expect(page.getByTestId("availability")).toHaveAttribute(
     "data-state",
     "ready",
   );
   // Круглосуточно, по часу: 24 начала с шагом 30 минут минус последнее.
-  await expect(slotsOf(page, "Стол 1")).toHaveCount(47);
-  await expect(
-    slotsOf(page, "Стол 1").filter({ hasText: /^12:00$/ }),
-  ).toHaveCount(1);
+  await expect(times(page)).toHaveCount(47);
+  await expect(time(page, "12:00")).toContainText("3 места");
 
   // Администратор занимает Стол 1 завтра 12:00–14:00.
   const { data: customer } = await admin
@@ -55,30 +60,31 @@ test("гость видит свободные окна; бронь из адм�
   });
 
   // Сменили длительность туда и обратно — окна перечитаны.
-  await picker
-    .getByLabel("Сколько по времени")
-    .selectOption({ label: "1 ч 30 мин" });
-  await picker.getByLabel("Сколько по времени").selectOption({ label: "1 ч" });
-  await expect(slotsOf(page, "Стол 1")).toHaveCount(42);
-  for (const time of ["11:30", "12:00", "12:30", "13:00", "13:30"]) {
-    await expect(
-      slotsOf(page, "Стол 1").filter({ hasText: new RegExp(`^${time}$`) }),
-    ).toHaveCount(0);
-  }
-  await expect(
-    slotsOf(page, "Стол 1").filter({ hasText: /^11:00$/ }),
-  ).toHaveCount(1);
-  await expect(
-    slotsOf(page, "Стол 1").filter({ hasText: /^14:00$/ }),
-  ).toHaveCount(1);
-  await expect(
-    slotsOf(page, "Стол 2").filter({ hasText: /^12:00$/ }),
-  ).toHaveCount(1);
+  await picker.getByRole("button", { name: "1 ч 30 мин", exact: true }).click();
+  await picker.getByRole("button", { name: "1 ч", exact: true }).click();
+  await expect(time(page, "12:00")).toContainText("2 места");
+  await expect(time(page, "11:00")).toContainText("3 места");
+  await expect(time(page, "14:00")).toContainText("3 места");
 
-  // Выбор окна.
-  await slotsOf(page, "Стол 2")
-    .filter({ hasText: /^12:00$/ })
-    .click();
+  // На 12:00 Стол 1 занят, Стол 2 свободен.
+  await time(page, "12:00").click();
+  await picker.getByRole("button", { name: "Выбрать место" }).click();
+  await expect(seat(page, "Стол 1")).toBeDisabled();
+  await expect(seat(page, "Стол 2")).toBeEnabled();
+
+  // На 11:00 Стол 1 ещё свободен.
+  await picker.getByRole("button", { name: "Назад к дате и времени" }).click();
+  await time(page, "11:00").click();
+  await picker.getByRole("button", { name: "Выбрать место" }).click();
+  await expect(seat(page, "Стол 1")).toBeEnabled();
+
+  // Выбор места и времени.
+  await picker.getByRole("button", { name: "Назад к дате и времени" }).click();
+  await time(page, "12:00").click();
+  await picker.getByRole("button", { name: "Выбрать место" }).click();
+  await seat(page, "Стол 2").click();
+  await expect(seat(page, "Стол 2")).toHaveAttribute("aria-pressed", "true");
+  await picker.getByRole("button", { name: "Далее" }).click();
   await expect(page.getByTestId("picked-slot")).toContainText(
     "Стол 2 · Завтра · 12:00–13:00",
   );

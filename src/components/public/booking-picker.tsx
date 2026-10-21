@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { getPublicAvailability, type PublicSlot } from "@/app/[slug]/actions";
 import type { ItemStatus } from "@/components/hall/hall-canvas";
@@ -9,29 +10,33 @@ import type { EditorItem } from "@/components/hall/hall-editor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+import { fitToItems } from "@/lib/hall/fit";
 import { durationOptions } from "@/lib/public-booking";
 import { cn } from "@/lib/utils";
-import { addDays, todayIn } from "@/lib/venue-time";
+import { addDays, isoWeekday, todayIn } from "@/lib/venue-time";
 import type { PublicHall, PublicPackage } from "./types";
 
 const HallCanvas = dynamic(() => import("@/components/hall/hall-canvas"), {
   ssr: false,
-  loading: () => <div className="bg-muted/30 size-full animate-pulse" />,
+  loading: () => <div className="bg-muted size-full animate-pulse" />,
 });
 
-// «Стол 2 · Завтра · 12:00–13:00» для выбранного окна.
-export function usePickedSummary(today: string, timezone: string) {
-  const t = useTranslations("PublicBooking");
-  const time = (iso: string) =>
+function useTimeFormat(timezone: string) {
+  return (iso: string) =>
     new Intl.DateTimeFormat("ru-RU", {
       hour: "2-digit",
       minute: "2-digit",
       timeZone: timezone,
     }).format(new Date(iso));
+}
+
+const endOf = (startsAt: string, minutes: number) =>
+  new Date(Date.parse(startsAt) + minutes * 60_000).toISOString();
+
+// «Стол 2 · Завтра · 12:00–13:00» для выбранного окна.
+export function usePickedSummary(today: string, timezone: string) {
+  const t = useTranslations("PublicBooking");
+  const time = useTimeFormat(timezone);
   return (picked: PickedSlot) =>
     (picked.packageName
       ? t("selectedTariff", {
@@ -43,11 +48,7 @@ export function usePickedSummary(today: string, timezone: string) {
       resource: picked.resourceName,
       date: dayLabelOf(picked.date, today, t),
       from: time(picked.startsAt),
-      to: time(
-        new Date(
-          Date.parse(picked.startsAt) + picked.durationMin * 60_000,
-        ).toISOString(),
-      ),
+      to: time(endOf(picked.startsAt, picked.durationMin)),
     });
 }
 
@@ -80,13 +81,12 @@ export type PickedSlot = {
   price: number | null;
 };
 
-const OWN_TIME = "own";
+// Число дней лентой; дальние даты — полем даты.
+const DATE_CHIPS = 14;
 
-// Число дат кнопками; дальние даты — полем даты.
-const DATE_CHIPS = 7;
-
-// Выбор даты, длительности, места и времени. Окна считает база
-// (get_availability), страница только показывает их.
+// Бронь по шагам, как в приложениях клубов: сначала дата, тариф и время
+// начала, потом место на схеме. Окна считает база (get_availability),
+// страница только показывает их.
 export function BookingPicker({
   venueId,
   timezone,
@@ -109,12 +109,11 @@ export function BookingPicker({
   packages: PublicPackage[];
   // Смена значения перечитывает окна (например, окно успели занять).
   reloadKey: number;
-  onPick: (slot: PickedSlot | null) => void;
+  onPick: (slot: PickedSlot) => void;
 }) {
   const t = useTranslations("PublicBooking");
+  const time = useTimeFormat(timezone);
   const durations = durationOptions(minDuration, slotStep);
-  const [date, setDate] = useState(today);
-  const [duration, setDuration] = useState(durations[0]);
   // Тарифы, которые можно забронировать онлайн: время укладывается в сетку
   // окон и есть место нужного вида.
   const tariffs = packages.filter(
@@ -127,16 +126,25 @@ export function BookingPicker({
         ),
       ),
   );
-  const [tariffId, setTariffId] = useState(tariffs[0]?.id ?? OWN_TIME);
-  const tariff = tariffs.find((p) => p.id === tariffId) ?? null;
+  const [date, setDate] = useState(today);
+  const [mode, setMode] = useState<"tariff" | "own">(
+    tariffs.length > 0 ? "tariff" : "own",
+  );
+  const [tariffId, setTariffId] = useState(tariffs[0]?.id ?? null);
+  const [duration, setDuration] = useState(durations[0]);
+  const tariff =
+    mode === "tariff" ? (tariffs.find((p) => p.id === tariffId) ?? null) : null;
   const minutes = tariff ? tariff.minutes : duration;
-  const [view, setView] = useState<"map" | "list">("map");
+  const [chosenTime, setTime] = useState<string | null>(null);
+  const [chosenStep, setStep] = useState<"when" | "seat">("when");
   const [hallId, setHallId] = useState(halls[0]?.id);
-  const [resourceId, setResourceId] = useState<string | null>(null);
+  const [chosenSeat, setSeat] = useState<string | null>(null);
+  const [busyTap, setBusyTap] = useState<string | null>(null);
   const [slots, setSlots] = useState<PublicSlot[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [pending, startTransition] = useTransition();
   const request = useRef(0);
+  const top = useRef<HTMLDivElement>(null);
 
   const load = useCallback(() => {
     const id = ++request.current;
@@ -164,30 +172,63 @@ export function BookingPicker({
   // С тарифом показываем только места тех видов, к которым он подходит.
   const resources = halls
     .flatMap((h) => h.resources)
-    .filter((r) => !tariff || tariff.resource_kinds.includes(r.kind));
+    .filter(
+      (r) =>
+        r.bookable_online &&
+        (!tariff || tariff.resource_kinds.includes(r.kind)),
+    );
   const allowed = new Set(resources.map((r) => r.id));
-  const byResource = Map.groupBy(
-    (slots ?? []).filter((s) => allowed.has(s.resourceId)),
-    (s) => s.resourceId,
-  );
-  const hall = halls.find((h) => h.id === hallId) ?? halls[0];
+  const usable = (slots ?? []).filter((s) => allowed.has(s.resourceId));
+  // Время начала и сколько мест на него свободно.
+  const times = new Map<string, Set<string>>();
+  for (const s of [...usable].sort((a, b) =>
+    a.startsAt.localeCompare(b.startsAt),
+  )) {
+    const set = times.get(s.startsAt) ?? new Set<string>();
+    set.add(s.resourceId);
+    times.set(s.startsAt, set);
+  }
+
+  // Выбор, который после перечитывания окон уже недоступен, сбрасывается сам.
+  const picked = chosenTime && times.has(chosenTime) ? chosenTime : null;
+  const free = picked ? times.get(picked)! : new Set<string>();
+  const seat = chosenSeat && free.has(chosenSeat) ? chosenSeat : null;
+  const step = chosenStep === "seat" && picked ? "seat" : "when";
+  const seatResource = resources.find((r) => r.id === seat);
+
   const lastDate = addDays(today, maxDaysAhead);
   const chips = Array.from(
     { length: Math.min(DATE_CHIPS, maxDaysAhead + 1) },
     (_, i) => addDays(today, i),
   );
-
-  const dayLabel = (d: string) => dayLabelOf(d, today, t);
   const durationLabel = (m: number) =>
     t("durationValue", { hours: Math.floor(m / 60), minutes: m % 60 }).trim();
+  const weekday = (d: string) =>
+    new Intl.DateTimeFormat("ru-RU", { weekday: "short", timeZone: "UTC" })
+      .format(new Date(`${d}T00:00:00Z`))
+      .replace(".", "");
 
-  function pick(slot: PublicSlot) {
-    const resource = resources.find((r) => r.id === slot.resourceId);
+  // Смена даты или длительности сбрасывает время и место: окна уже другие.
+  function change(next: () => void) {
+    next();
+    setTime(null);
+    setSeat(null);
+    setBusyTap(null);
+  }
+
+  function goTo(next: "when" | "seat") {
+    setStep(next);
+    setBusyTap(null);
+    top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function confirm() {
+    if (!picked || !seatResource) return;
     onPick({
-      resourceId: slot.resourceId,
-      resourceName: resource?.name ?? "",
+      resourceId: seatResource.id,
+      resourceName: seatResource.name,
       date,
-      startsAt: slot.startsAt,
+      startsAt: picked,
       durationMin: minutes,
       packageId: tariff?.id ?? null,
       packageName: tariff?.name ?? null,
@@ -195,281 +236,446 @@ export function BookingPicker({
     });
   }
 
-  // Смена даты или длительности сбрасывает выбор: окна уже другие.
-  function change(next: () => void) {
-    next();
-    setResourceId(null);
-    onPick(null);
+  function tapSeat(id: string | null) {
+    if (!id || !allowed.has(id)) return;
+    if (free.has(id)) {
+      setSeat(id);
+      setBusyTap(null);
+    } else {
+      setBusyTap(id);
+    }
   }
 
-  const selected = resources.find((r) => r.id === resourceId);
+  const range = picked
+    ? `${time(picked)}–${time(endOf(picked, minutes))}`
+    : null;
+  const whenLine = picked
+    ? [
+        dayLabelOf(date, today, t),
+        range,
+        tariff ? tariff.name : durationLabel(minutes),
+      ].join(" · ")
+    : null;
+
+  const hall = halls.find((h) => h.id === hallId) ?? halls[0];
+  const fitted = hall ? fitHall(hall) : null;
   const statuses: Record<string, ItemStatus> = Object.fromEntries(
     resources.map((r) => [
       r.id,
-      { tone: byResource.has(r.id) ? "free" : "off" } as ItemStatus,
+      {
+        tone: r.id === seat ? "picked" : free.has(r.id) ? "free" : "off",
+      } as ItemStatus,
     ]),
   );
 
   return (
-    <div className="grid gap-4" data-testid="booking-picker">
-      <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">{t("date")}</legend>
-        <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
-          {chips.map((d) => (
-            <button
-              key={d}
-              type="button"
-              aria-pressed={d === date}
-              onClick={() => change(() => setDate(d))}
-              className="bg-card hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:border-primary shrink-0 rounded-full border px-4 py-2 text-sm font-medium first-letter:uppercase"
-            >
-              {dayLabel(d)}
-            </button>
-          ))}
-        </div>
-        {maxDaysAhead + 1 > DATE_CHIPS && (
-          <div className="flex items-center gap-2">
-            <Label
-              htmlFor="public-date"
-              className="text-muted-foreground text-xs"
-            >
-              {t("otherDate")}
-            </Label>
-            <Input
-              id="public-date"
-              type="date"
-              min={today}
-              max={lastDate}
-              value={date}
-              onChange={(e) => {
-                const d = e.target.value;
-                if (d >= today && d <= lastDate) change(() => setDate(d));
-              }}
-              className="h-8 w-auto"
-            />
-          </div>
-        )}
-      </fieldset>
+    <div
+      ref={top}
+      className="grid min-w-0 scroll-mt-4 gap-6"
+      data-testid="booking-picker"
+      data-step={step}
+    >
+      <Steps step={step} />
 
-      {tariffs.length > 0 && (
-        <fieldset className="grid gap-2">
-          <legend className="mb-2 text-sm font-medium">{t("tariff")}</legend>
-          <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
-            {[...tariffs, null].map((p) => {
-              const value = p?.id ?? OWN_TIME;
-              return (
-                <label
-                  key={value}
-                  className="bg-card has-checked:border-primary has-checked:bg-secondary has-checked:ring-primary hover:bg-muted/60 relative grid cursor-pointer gap-1 rounded-xl border p-4 has-checked:ring-1"
-                >
-                  <input
-                    type="radio"
-                    name="public-tariff"
-                    value={value}
-                    checked={tariffId === value}
-                    onChange={() => change(() => setTariffId(value))}
-                    className="accent-primary absolute top-3 right-3 size-4"
-                  />
-                  <span className="font-semibold">
-                    {p ? p.name : t("ownTime")}
-                  </span>
-                  {p ? (
-                    <span className="flex items-baseline justify-between gap-2">
-                      <span className="text-muted-foreground text-sm">
-                        {durationLabel(p.minutes)}
-                      </span>
-                      <span className="text-lg font-semibold tabular-nums">
-                        {t("price", { price: p.price.toLocaleString("ru-RU") })}
-                      </span>
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">
-                      {t("ownTimeHint")}
-                    </span>
-                  )}
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-      )}
-
-      {!tariff && (
-        <div className="grid gap-1.5">
-          <Label htmlFor="public-duration">{t("duration")}</Label>
-          <NativeSelect
-            id="public-duration"
-            value={duration}
-            onChange={(e) => change(() => setDuration(Number(e.target.value)))}
-            className="w-full sm:w-60"
-          >
-            {durations.map((m) => (
-              <NativeSelectOption key={m} value={m}>
-                {durationLabel(m)}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </div>
-      )}
-
-      <div className="bg-muted flex w-fit gap-1 rounded-lg p-1" role="tablist">
-        {(["map", "list"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            role="tab"
-            aria-selected={view === v}
-            onClick={() => setView(v)}
-            className="text-muted-foreground aria-selected:bg-card aria-selected:text-foreground rounded-md px-3 py-1.5 text-sm font-medium aria-selected:shadow-xs"
-          >
-            {v === "map" ? t("viewMap") : t("viewList")}
-          </button>
-        ))}
-      </div>
-
-      <div
-        className={cn("grid gap-3", pending && "opacity-60")}
-        aria-busy={pending}
-        data-testid="availability"
-        data-state={pending || !slots ? "loading" : "ready"}
-      >
-        {failed ? (
-          <div className="flex flex-wrap items-center gap-2 text-sm">
-            <p className="text-destructive">{t("loadError")}</p>
-            <Button variant="outline" size="sm" onClick={load}>
-              {t("retry")}
-            </Button>
-          </div>
-        ) : slots === null ? (
-          <p className="text-muted-foreground text-sm">{t("loading")}</p>
-        ) : slots.length === 0 ? (
-          <p className="text-sm">{t("noSlots")}</p>
-        ) : view === "map" && hall ? (
-          <>
-            {halls.length > 1 && (
-              <div className="flex flex-wrap gap-2">
-                {halls.map((h) => (
+      {step === "when" ? (
+        <>
+          <fieldset className="grid min-w-0 gap-3">
+            <legend className="mb-3 flex w-full items-baseline justify-between text-sm font-semibold">
+              {t("date")}
+              <span className="text-muted-foreground font-normal first-letter:uppercase">
+                {dayLabelOf(date, today, t)}
+              </span>
+            </legend>
+            <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+              {chips.map((d) => {
+                const weekend = isoWeekday(d) >= 6;
+                return (
                   <button
-                    key={h.id}
+                    key={d}
                     type="button"
-                    aria-pressed={h.id === hall.id}
-                    onClick={() => setHallId(h.id)}
-                    className="hover:bg-muted aria-pressed:bg-primary aria-pressed:text-primary-foreground rounded-md px-3 py-1.5 text-sm"
+                    aria-pressed={d === date}
+                    aria-label={dayLabelOf(d, today, t)}
+                    onClick={() => change(() => setDate(d))}
+                    className="group bg-muted hover:bg-accent aria-pressed:bg-primary aria-pressed:text-primary-foreground grid h-16 w-14 shrink-0 place-content-center gap-0.5 rounded-xl text-center transition-colors"
                   >
-                    {h.name}
+                    <span
+                      className={cn(
+                        "text-xs capitalize",
+                        weekend
+                          ? "text-primary group-aria-pressed:text-primary-foreground"
+                          : "text-muted-foreground group-aria-pressed:text-primary-foreground/80",
+                      )}
+                    >
+                      {weekday(d)}
+                    </span>
+                    <span className="text-lg leading-none font-bold tabular-nums">
+                      {Number(d.slice(8))}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {maxDaysAhead + 1 > DATE_CHIPS && (
+              <div className="flex items-center gap-2">
+                <Label
+                  htmlFor="public-date"
+                  className="text-muted-foreground text-xs"
+                >
+                  {t("otherDate")}
+                </Label>
+                <Input
+                  id="public-date"
+                  type="date"
+                  min={today}
+                  max={lastDate}
+                  value={date}
+                  onChange={(e) => {
+                    const d = e.target.value;
+                    if (d >= today && d <= lastDate) change(() => setDate(d));
+                  }}
+                  className="h-9 w-auto [color-scheme:dark]"
+                />
+              </div>
+            )}
+          </fieldset>
+
+          <div className="grid gap-3">
+            {tariffs.length > 0 && (
+              <div
+                className="bg-muted grid grid-cols-2 gap-1 rounded-xl p-1"
+                role="group"
+                aria-label={t("tariff")}
+              >
+                {(["tariff", "own"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    aria-pressed={mode === m}
+                    onClick={() => change(() => setMode(m))}
+                    className="text-muted-foreground aria-pressed:bg-background aria-pressed:text-foreground h-10 rounded-lg text-sm font-semibold transition-colors"
+                  >
+                    {m === "tariff" ? t("modeTariffs") : t("ownTime")}
                   </button>
                 ))}
               </div>
             )}
-            <p className="text-muted-foreground text-xs">{t("mapHint")}</p>
-            <div
-              className="relative w-full overflow-hidden rounded-lg border"
-              style={{ aspectRatio: `${hall.width} / ${hall.height}` }}
-            >
-              <HallCanvas
-                hall={hall}
-                items={hallItems(hall)}
-                selectedKey={resourceId}
-                editable={false}
-                statuses={statuses}
-                onSelect={(key) =>
-                  setResourceId(
-                    key && resources.some((r) => r.id === key) ? key : null,
-                  )
-                }
-                onChange={() => {}}
-              />
-            </div>
-            {selected ? (
-              <SlotChips
-                title={
-                  byResource.has(selected.id)
-                    ? t("resourceSlots", { name: selected.name })
-                    : t("resourceBusy", { name: selected.name })
-                }
-                slots={byResource.get(selected.id) ?? []}
-                date={date}
-                timezone={timezone}
-                onPick={pick}
-              />
-            ) : (
-              <p className="text-muted-foreground text-sm">
-                {t("pickResource")}
-              </p>
-            )}
-          </>
-        ) : (
-          <ul className="grid gap-3" data-testid="slot-list">
-            {resources.map((r) => (
-              <li key={r.id} data-resource={r.name} data-testid="slot-resource">
-                <SlotChips
-                  title={r.name}
-                  empty={t("noSlotsResource")}
-                  slots={byResource.get(r.id) ?? []}
-                  date={date}
-                  timezone={timezone}
-                  onPick={pick}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-}
 
-function SlotChips({
-  title,
-  empty,
-  slots,
-  date,
-  timezone,
-  onPick,
-}: {
-  title: string;
-  empty?: string;
-  slots: PublicSlot[];
-  date: string;
-  timezone: string;
-  onPick: (slot: PublicSlot) => void;
-}) {
-  const t = useTranslations("PublicBooking");
-  const format = (iso: string) =>
-    new Intl.DateTimeFormat("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: timezone,
-    }).format(new Date(iso));
-  return (
-    <div className="grid gap-2">
-      <p className="text-sm font-medium">{title}</p>
-      {slots.length === 0 ? (
-        empty && <p className="text-muted-foreground text-sm">{empty}</p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {slots.map((s) => (
-            <button
-              key={s.startsAt}
-              type="button"
-              onClick={() => onPick(s)}
-              className="bg-card hover:border-primary hover:bg-primary hover:text-primary-foreground min-w-16 rounded-lg border px-3 py-2 text-sm font-medium tabular-nums transition-colors"
+            {mode === "tariff" ? (
+              <fieldset className="min-w-0">
+                <legend className="sr-only">{t("tariff")}</legend>
+                <div className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+                  {tariffs.map((p) => (
+                    <label
+                      key={p.id}
+                      className="bg-muted has-checked:bg-foreground has-checked:text-background relative grid min-w-40 shrink-0 cursor-pointer gap-3 rounded-2xl p-4 transition-colors"
+                    >
+                      <input
+                        type="radio"
+                        name="public-tariff"
+                        value={p.id}
+                        checked={tariffId === p.id}
+                        onChange={() => change(() => setTariffId(p.id))}
+                        className="accent-primary absolute top-3.5 right-3.5 size-4"
+                      />
+                      <span className="pr-6 font-semibold">{p.name}</span>
+                      <span className="grid">
+                        <span className="text-xl font-bold tabular-nums">
+                          {t("price", {
+                            price: p.price.toLocaleString("ru-RU"),
+                          })}
+                        </span>
+                        <span className="text-sm opacity-70">
+                          {durationLabel(p.minutes)}
+                        </span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            ) : (
+              <fieldset className="grid min-w-0 gap-3">
+                <legend className="mb-3 text-sm font-semibold">
+                  {t("duration")}
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {durations.map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      aria-pressed={duration === m}
+                      onClick={() => change(() => setDuration(m))}
+                      className="bg-muted hover:bg-accent aria-pressed:bg-foreground aria-pressed:text-background h-10 rounded-xl px-4 text-sm font-semibold tabular-nums transition-colors"
+                    >
+                      {durationLabel(m)}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            )}
+          </div>
+
+          <section
+            className="grid gap-3"
+            aria-labelledby="start-title"
+            aria-busy={pending}
+            data-testid="availability"
+            data-state={pending || !slots ? "loading" : "ready"}
+          >
+            <h3
+              id="start-title"
+              className="flex items-baseline justify-between text-sm font-semibold"
             >
-              {format(s.startsAt)}
-              {/* Ночное окно — уже следующие сутки рабочего дня. */}
-              {todayIn(timezone, new Date(s.startsAt)) !== date && (
-                <span className="text-muted-foreground"> {t("night")}</span>
+              {t("start")}
+              {whenLine && (
+                <span className="text-muted-foreground font-normal">
+                  {range}
+                </span>
               )}
-            </button>
-          ))}
-        </div>
+            </h3>
+            {failed ? (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <p className="text-destructive">{t("loadError")}</p>
+                <Button variant="outline" size="sm" onClick={load}>
+                  {t("retry")}
+                </Button>
+              </div>
+            ) : slots === null ? (
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                {Array.from({ length: 8 }, (_, i) => (
+                  <div
+                    key={i}
+                    className="bg-muted h-14 animate-pulse rounded-xl"
+                  />
+                ))}
+              </div>
+            ) : times.size === 0 ? (
+              <p className="bg-muted rounded-xl p-4 text-sm">{t("noSlots")}</p>
+            ) : (
+              <div
+                className={cn(
+                  "grid grid-cols-4 gap-2 transition-opacity sm:grid-cols-6",
+                  pending && "opacity-60",
+                )}
+                data-testid="time-slots"
+              >
+                {[...times].map(([startsAt, seats]) => (
+                  <button
+                    key={startsAt}
+                    type="button"
+                    aria-pressed={startsAt === picked}
+                    onClick={() => {
+                      setTime(startsAt);
+                      setBusyTap(null);
+                    }}
+                    className="bg-muted hover:bg-accent aria-pressed:ring-primary aria-pressed:bg-background grid h-14 place-content-center rounded-xl text-center transition-colors aria-pressed:ring-2"
+                  >
+                    <span className="font-bold tabular-nums">
+                      {time(startsAt)}
+                    </span>
+                    {/* Ночное окно — уже следующие сутки рабочего дня. */}
+                    <span className="text-muted-foreground text-[11px] leading-tight">
+                      {todayIn(timezone, new Date(startsAt)) !== date
+                        ? t("night")
+                        : t("freeCount", { count: seats.size })}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <StickyAction>
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={!picked}
+              onClick={() => goTo("seat")}
+            >
+              {picked ? t("chooseSeat") : t("chooseTime")}
+            </Button>
+          </StickyAction>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon-lg"
+              onClick={() => goTo("when")}
+              aria-label={t("back")}
+            >
+              <ArrowLeft />
+            </Button>
+            <div className="min-w-0">
+              <p className="text-muted-foreground text-xs">{t("stepWhen")}</p>
+              <p className="truncate font-semibold first-letter:uppercase">
+                {whenLine}
+              </p>
+            </div>
+          </div>
+
+          {halls.length > 1 && (
+            <div className="flex flex-wrap gap-2">
+              {halls.map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  aria-pressed={h.id === hall.id}
+                  onClick={() => setHallId(h.id)}
+                  className="bg-muted aria-pressed:bg-foreground aria-pressed:text-background h-9 rounded-lg px-3 text-sm font-medium"
+                >
+                  {h.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {fitted && (
+            <div className="grid gap-2">
+              <div
+                className="relative w-full overflow-hidden rounded-2xl border"
+                style={{
+                  aspectRatio: `${fitted.size.width} / ${fitted.size.height}`,
+                }}
+              >
+                <HallCanvas
+                  hall={fitted.size}
+                  items={fitted.items}
+                  selectedKey={null}
+                  editable={false}
+                  statuses={statuses}
+                  dark
+                  onSelect={tapSeat}
+                  onChange={() => {}}
+                />
+              </div>
+              <ul className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                <Legend className="bg-[#15301f] ring-2 ring-[#34c46a]">
+                  {t("legendFree")}
+                </Legend>
+                <Legend className="bg-[#2a2a2a] ring-1 ring-[#3d3d3d]">
+                  {t("legendBusy")}
+                </Legend>
+                <Legend className="bg-primary">{t("legendPicked")}</Legend>
+              </ul>
+            </div>
+          )}
+
+          <fieldset className="grid min-w-0 gap-3">
+            <legend className="mb-3 text-sm font-semibold">
+              {t("seatsTitle")}
+            </legend>
+            <div className="flex flex-wrap gap-2" data-testid="seat-list">
+              {resources.map((r) => {
+                const isFree = free.has(r.id);
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    disabled={!isFree}
+                    aria-pressed={r.id === seat}
+                    onClick={() => tapSeat(r.id)}
+                    className="bg-muted hover:bg-accent aria-pressed:bg-primary aria-pressed:text-primary-foreground h-11 rounded-xl px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:line-through disabled:opacity-40"
+                  >
+                    {r.name}
+                  </button>
+                );
+              })}
+            </div>
+            <p
+              className={cn(
+                "text-sm",
+                busyTap ? "text-destructive" : "text-muted-foreground",
+              )}
+              aria-live="polite"
+            >
+              {busyTap
+                ? t("seatTaken", {
+                    name: resources.find((r) => r.id === busyTap)?.name ?? "",
+                  })
+                : seatResource
+                  ? t("seatPicked", { name: seatResource.name })
+                  : t("pickSeat")}
+            </p>
+          </fieldset>
+
+          <StickyAction>
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={!seatResource}
+              onClick={confirm}
+            >
+              {t("next")}
+            </Button>
+          </StickyAction>
+        </>
       )}
     </div>
   );
 }
 
-function hallItems(hall: PublicHall): EditorItem[] {
-  return [
+// Шаги брони: дата и время → место → контакты.
+export function Steps({ step }: { step: "when" | "seat" | "guest" }) {
+  const t = useTranslations("PublicBooking");
+  const order = ["when", "seat", "guest"] as const;
+  const current = order.indexOf(step);
+  return (
+    <ol className="grid grid-cols-3 gap-2" aria-label={t("stepsLabel")}>
+      {order.map((s, i) => (
+        <li
+          key={s}
+          aria-current={i === current ? "step" : undefined}
+          className="grid gap-1.5"
+        >
+          <span
+            className={cn(
+              "h-1 rounded-full",
+              i <= current ? "bg-primary" : "bg-muted",
+            )}
+          />
+          <span
+            className={cn(
+              "text-xs",
+              i === current
+                ? "text-foreground font-semibold"
+                : "text-muted-foreground",
+            )}
+          >
+            {t(`step.${s}`)}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+// Главная кнопка шага: на телефоне прилипает к низу экрана.
+export function StickyAction({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="bg-card/95 sticky bottom-0 z-10 -mx-4 -mb-4 px-4 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6 lg:static lg:mx-0 lg:mb-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none">
+      {children}
+    </div>
+  );
+}
+
+function Legend({
+  className,
+  children,
+}: {
+  className: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-1.5">
+      <span aria-hidden="true" className={cn("size-3 rounded-sm", className)} />
+      {children}
+    </li>
+  );
+}
+
+function fitHall(hall: PublicHall) {
+  return fitToItems(hall, [
     ...hall.objects.map((o) => ({ ...o, type: "object" as const, key: o.id })),
     ...hall.resources.map((r) => ({
       ...r,
@@ -477,5 +683,5 @@ function hallItems(hall: PublicHall): EditorItem[] {
       key: r.id,
       is_active: true,
     })),
-  ];
+  ] satisfies EditorItem[]);
 }

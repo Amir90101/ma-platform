@@ -60,7 +60,7 @@ async function VenueList() {
         <li key={venue.id}>
           <Link
             href={`/app/${venue.id}`}
-            className="bg-card hover:border-primary/40 group flex h-full items-center gap-4 rounded-xl border p-4 shadow-xs transition-colors"
+            className="bg-card hover:border-primary/40 group shadow-card flex h-full items-center gap-4 rounded-2xl p-4 transition-colors"
           >
             <span
               aria-hidden="true"
@@ -84,7 +84,7 @@ async function VenueList() {
       <li>
         <Link
           href="/app/new"
-          className="text-muted-foreground hover:text-foreground hover:border-primary/40 flex h-full min-h-20 items-center justify-center gap-2 rounded-xl border border-dashed p-4 text-sm font-medium transition-colors"
+          className="text-muted-foreground hover:text-foreground hover:border-primary border-input flex h-full min-h-20 items-center justify-center gap-2 rounded-2xl border-2 border-dashed p-4 text-sm font-medium transition-colors"
         >
           <Plus aria-hidden="true" className="size-4" />
           {t("addVenue")}

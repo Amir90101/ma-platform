@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
-import { Fira_Code, Fira_Sans } from "next/font/google";
+import { Fira_Code, Onest } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { defaultLocale } from "@/i18n/request";
 import "./globals.css";
 
-// Fira Sans — шрифт для панелей и данных (рекомендация дизайн-системы):
-// кириллица с казахскими буквами, табличные цифры для таймеров и сумм.
-const sans = Fira_Sans({
+// Onest — геометрический гротеск с кириллицей и казахскими буквами,
+// табличные цифры для таймеров и сумм.
+const sans = Onest({
   variable: "--font-sans-family",
-  weight: ["400", "500", "600", "700"],
   subsets: ["latin", "cyrillic", "cyrillic-ext"],
 });
 
