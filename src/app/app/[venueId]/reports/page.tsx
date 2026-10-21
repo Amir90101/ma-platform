@@ -62,6 +62,11 @@ async function Reports({
     supabase.rpc("get_load_report", period),
   ]);
   const revenue = data as RevenueReport | null;
+  // Полоски по столам — от лучшего стола: разница между столами заметнее.
+  const topResource = Math.max(
+    1,
+    ...(revenue?.by_resource ?? []).map((r) => r.total),
+  );
   const load = loadData as LoadReport | null;
   const href = (p: { from: string; to: string }) =>
     `/app/${venue.id}/reports?from=${p.from}&to=${p.to}`;
@@ -229,7 +234,7 @@ async function Reports({
                           <div
                             className="bg-primary/70 h-2 rounded-full"
                             style={{
-                              width: `${(r.total / revenue.total) * 100}%`,
+                              width: `${(r.total / topResource) * 100}%`,
                             }}
                           />
                         </td>
