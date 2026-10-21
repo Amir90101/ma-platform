@@ -27,6 +27,9 @@ const KNOWN_ERRORS = new Set([
   "booking_not_found",
   "booking_not_confirmed",
   "booking_status_invalid",
+  "booking_ended",
+  "resource_busy",
+  "package_not_found",
   "phone_required",
   "reason_required",
   "resource_not_found",
@@ -126,6 +129,19 @@ export async function markNoShow(
   const { error } = await supabase.rpc("set_booking_status", {
     p_booking_id: bookingId,
     p_status: "no_show",
+  });
+  if (error) return failure(error);
+  refresh();
+  return { ok: true };
+}
+
+// «Пришёл»: бронь становится сеансом на своём столе.
+export async function arriveBooking(
+  bookingId: string,
+): Promise<BookingActionResult> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("arrive_booking", {
+    p_booking_id: bookingId,
   });
   if (error) return failure(error);
   refresh();

@@ -28,6 +28,9 @@ import type { EditorItem } from "./hall-editor";
 import { type OpenShift, ShiftBar } from "./shift-bar";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { useVenueRealtime } from "@/lib/hooks/use-venue-realtime";
+import { arriveBooking } from "@/app/app/booking-actions";
+import { ARRIVE_EARLY_MS, canArrive } from "@/lib/booking-rules";
+import type { UpcomingBooking } from "@/lib/hall/upcoming-bookings";
 
 const HallCanvas = dynamic(() => import("./hall-canvas"), {
   ssr: false,
@@ -35,8 +38,13 @@ const HallCanvas = dynamic(() => import("./hall-canvas"), {
 });
 
 const DURATIONS = [30, 60, 90, 120, 180, 240];
-// Статусы столов и смена во всех открытых окнах.
-const REALTIME_TABLES = ["session_segments", "sessions", "shifts"] as const;
+// Статусы столов, смена и брони во всех открытых окнах.
+const REALTIME_TABLES = [
+  "session_segments",
+  "sessions",
+  "shifts",
+  "bookings",
+] as const;
 
 export type VenueResource = { id: string; name: string; hallName: string };
 export type PackageOption = { id: string; name: string };
@@ -64,6 +72,14 @@ function useServerClock() {
   return now;
 }
 
+function formatClock(iso: string, timezone: string) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: timezone,
+  }).format(new Date(iso));
+}
+
 function formatElapsed(ms: number) {
   const total = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(total / 3600);
@@ -84,6 +100,7 @@ export function HallView({
   venueResources,
   packages,
   shift,
+  bookings,
 }: {
   venueId: string;
   timezone: string;
@@ -94,6 +111,8 @@ export function HallView({
   venueResources: VenueResource[];
   packages: PackageOption[];
   shift: OpenShift | null;
+  // Ждущие брони по времени начала.
+  bookings: UpcomingBooking[];
 }) {
   const t = useTranslations("Hall");
   const tw = useTranslations("Work");
@@ -114,6 +133,13 @@ export function HallView({
 
   const resources = layout.resources.filter((r) => r.is_active);
   const sessionByResource = new Map(sessions.map((s) => [s.resourceId, s]));
+  // Ближайшая ждущая бронь каждого стола (bookings отсортированы по началу).
+  const bookingByResource = new Map<string, UpcomingBooking>();
+  for (const b of bookings) {
+    if (!bookingByResource.has(b.resourceId)) {
+      bookingByResource.set(b.resourceId, b);
+    }
+  }
   const items: EditorItem[] = [
     ...layout.objects.map((o) => ({
       ...o,
@@ -130,9 +156,18 @@ export function HallView({
           tone: s.status === "paused" ? "paused" : "busy",
           caption: formatElapsed(now - Date.parse(s.startedAt)),
         }
-      : { tone: "free" };
+      : { tone: "free", caption: bookingCaption(r.id!) };
+  }
+  // Свободный стол с бронью в ближайшие часы: время брони на карте.
+  function bookingCaption(resourceId: string) {
+    const b = bookingByResource.get(resourceId);
+    if (!b || Date.parse(b.startsAt) - now > ARRIVE_EARLY_MS) return undefined;
+    return tw("bookingCaption", { time: formatClock(b.startsAt, timezone) });
   }
   const selected = resources.find((r) => r.id === selectedKey) ?? null;
+  const selectedBooking = selected
+    ? bookingByResource.get(selected.id!)
+    : undefined;
   const busyIds = new Set(sessions.map((s) => s.resourceId));
 
   return (
@@ -213,6 +248,15 @@ export function HallView({
             {busyNotice === selected.id && (
               <ActionError error="resource_busy" />
             )}
+            {selectedBooking && (
+              <BookingNotice
+                key={selectedBooking.id}
+                booking={selectedBooking}
+                now={now}
+                timezone={timezone}
+                busy={sessionByResource.has(selected.id!)}
+              />
+            )}
             {sessionByResource.has(selected.id!) ? (
               <SessionCard
                 key={sessionByResource.get(selected.id!)!.id}
@@ -260,6 +304,82 @@ function ActionError({ error }: { error?: string }) {
     <p className="text-destructive text-sm" data-testid="work-error">
       {tw(`errors.${error}`)}
     </p>
+  );
+}
+
+// Бронь на выбранном столе: предупреждение перед стартом без брони и
+// кнопка «Пришёл», которая превращает бронь в сеанс.
+function BookingNotice({
+  booking: b,
+  now,
+  timezone,
+  busy,
+}: {
+  booking: UpcomingBooking;
+  now: number;
+  timezone: string;
+  busy: boolean;
+}) {
+  const tw = useTranslations("Work");
+  const tb = useTranslations("Bookings");
+  const { pending, error, run } = useAction();
+  const hydrated = useHydrated();
+  const left = Math.max(0, Date.parse(b.startsAt) - now);
+  const minutes = Math.floor(left / 60_000);
+  const started = left === 0;
+
+  let text: string;
+  if (busy) {
+    text = tw("bookingNext", { time: formatClock(b.startsAt, timezone) });
+  } else if (started) {
+    text = tw("bookingStarted", {
+      from: formatClock(b.startsAt, timezone),
+      to: formatClock(b.endsAt, timezone),
+    });
+  } else {
+    text = tw("bookingSoon", {
+      time: formatClock(b.startsAt, timezone),
+      left:
+        minutes >= 60
+          ? tw("leftHM", {
+              hours: Math.floor(minutes / 60),
+              minutes: minutes % 60,
+            })
+          : tw("leftM", { minutes }),
+    });
+  }
+
+  return (
+    <div
+      className="grid gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950"
+      data-testid="booking-notice"
+    >
+      <p className="font-medium">{text}</p>
+      {b.guest && (
+        <p>
+          {tw("bookingGuest", { guest: b.guest })}
+          {b.guests && <> · {tb("guestsCount", { count: b.guests })}</>}
+        </p>
+      )}
+      {b.noShowCount > 0 && (
+        <p className="font-medium text-amber-800 dark:text-amber-300">
+          {tb("noShows", { count: b.noShowCount })}
+        </p>
+      )}
+      {!busy && canArrive(b.startsAt, b.endsAt, now) && (
+        <div>
+          <Button
+            type="button"
+            size="sm"
+            disabled={pending || !hydrated}
+            onClick={() => run(() => arriveBooking(b.id))}
+          >
+            {pending ? tw("arriving") : tw("arrived")}
+          </Button>
+        </div>
+      )}
+      <ActionError error={error} />
+    </div>
   );
 }
 

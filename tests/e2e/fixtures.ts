@@ -126,3 +126,35 @@ export async function signedInClient(email: string, password: string) {
   await client.auth.signInWithPassword({ email, password });
   return client;
 }
+
+// Ждущая бронь гостя через startsInMin минут от сейчас.
+export async function seedBooking(
+  venueId: string,
+  resourceId: string,
+  b: { startsInMin: number; minutes: number; phone: string; name: string },
+) {
+  const { data: customer } = await admin
+    .from("customers")
+    .upsert(
+      { venue_id: venueId, phone: b.phone, name: b.name },
+      { onConflict: "venue_id,phone" },
+    )
+    .select("id")
+    .single();
+  const startsAt = new Date(Date.now() + b.startsInMin * 60_000);
+  const endsAt = new Date(startsAt.getTime() + b.minutes * 60_000);
+  const { data: booking } = await admin
+    .from("bookings")
+    .insert({
+      venue_id: venueId,
+      resource_id: resourceId,
+      customer_id: customer!.id,
+      starts_at: startsAt.toISOString(),
+      ends_at: endsAt.toISOString(),
+      blocked_until: endsAt.toISOString(),
+      source: "phone",
+    })
+    .select("id")
+    .single();
+  return { id: booking!.id, startsAt };
+}

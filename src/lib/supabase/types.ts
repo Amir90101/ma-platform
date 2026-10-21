@@ -435,6 +435,9 @@ isOneToOne: false
 "add_session_item":
 { Args: { "p_name": string,"p_price": number,"p_qty"?: number,"p_session_id": string }; Returns: string
                            },
+"arrive_booking":
+{ Args: { "p_booking_id": string,"p_package_id"?: string }; Returns: string
+                           },
 "booking_conflict":
 { Args: { "p_blocked_until": string,"p_resource_id": string,"p_starts_at": string }; Returns: Json
                            },

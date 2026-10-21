@@ -372,7 +372,10 @@
       "shift_already_open": "Смена уже открыта",
       "shift_already_closed": "Смена уже закрыта",
       "cash_invalid": "Введите сумму целым числом тенге",
-      "overpayment": "Оплата больше суммы счёта"
+      "overpayment": "Оплата больше суммы счёта",
+      "booking_not_found": "Бронь не найдена.",
+      "booking_not_confirmed": "Бронь уже не ждёт гостя.",
+      "booking_ended": "Время брони уже прошло. Запустите стол без брони."
     },
     "stopHint": "Время остановлено. Проверьте чек и примите оплату.",
     "receipt": "Чек",
@@ -408,7 +411,16 @@
     "closingCash": "Наличные в кассе сейчас, ₸",
     "closeShift": "Закрыть смену",
     "shiftResult": "Смена закрыта. По системе: {expected} ₸, в кассе: {counted} ₸, разница: {diff} ₸",
-    "currency": "{amount} ₸"
+    "currency": "{amount} ₸",
+    "bookingSoon": "Бронь в {time}, стол свободен {left}",
+    "bookingStarted": "Бронь {from}–{to} уже началась, гость ещё не пришёл",
+    "bookingNext": "Следующая бронь в {time}",
+    "bookingGuest": "Гость брони: {guest}",
+    "bookingCaption": "бронь {time}",
+    "leftHM": "{hours} ч {minutes} мин",
+    "leftM": "{minutes} мин",
+    "arrived": "Пришёл",
+    "arriving": "Запускаем…"
   },
   "Audit": {
     "title": "Журнал действий",
@@ -503,7 +515,12 @@
       "reason_required": "Укажите причину",
       "resource_not_found": "Стол не найден",
       "resource_inactive": "Стол выключен",
-      "unknown": "Не получилось. Попробуйте ещё раз."
-    }
+      "unknown": "Не получилось. Попробуйте ещё раз.",
+      "booking_ended": "Время брони уже прошло",
+      "resource_busy": "Стол занят другим сеансом. Освободите его на карте.",
+      "package_not_found": "Пакет не подходит к этому столу"
+    },
+    "arrived": "Пришёл",
+    "toHall": "Открыть карту"
   }
 }
