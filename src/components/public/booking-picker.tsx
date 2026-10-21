@@ -23,6 +23,45 @@ const HallCanvas = dynamic(() => import("@/components/hall/hall-canvas"), {
   loading: () => <div className="bg-muted/30 size-full animate-pulse" />,
 });
 
+// «Стол 2 · Завтра · 12:00–13:00» для выбранного окна.
+export function usePickedSummary(today: string, timezone: string) {
+  const t = useTranslations("PublicBooking");
+  const time = (iso: string) =>
+    new Intl.DateTimeFormat("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: timezone,
+    }).format(new Date(iso));
+  return (picked: PickedSlot) =>
+    t("selected", {
+      resource: picked.resourceName,
+      date: dayLabelOf(picked.date, today, t),
+      from: time(picked.startsAt),
+      to: time(
+        new Date(
+          Date.parse(picked.startsAt) + picked.durationMin * 60_000,
+        ).toISOString(),
+      ),
+    });
+}
+
+function dayLabelOf(
+  d: string,
+  today: string,
+  t: (key: "today" | "tomorrow") => string,
+) {
+  return d === today
+    ? t("today")
+    : d === addDays(today, 1)
+      ? t("tomorrow")
+      : new Intl.DateTimeFormat("ru-RU", {
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+          timeZone: "UTC",
+        }).format(new Date(`${d}T00:00:00Z`));
+}
+
 export type PickedSlot = {
   resourceId: string;
   resourceName: string;
@@ -44,7 +83,7 @@ export function BookingPicker({
   minDuration,
   slotStep,
   halls,
-  picked,
+  reloadKey,
   onPick,
 }: {
   venueId: string;
@@ -54,7 +93,8 @@ export function BookingPicker({
   minDuration: number;
   slotStep: number;
   halls: PublicHall[];
-  picked: PickedSlot | null;
+  // Смена значения перечитывает окна (например, окно успели занять).
+  reloadKey: number;
   onPick: (slot: PickedSlot | null) => void;
 }) {
   const t = useTranslations("PublicBooking");
@@ -78,7 +118,9 @@ export function BookingPicker({
       setFailed(!r.ok);
       setSlots(r.ok ? r.slots : null);
     });
-  }, [venueId, date, duration]);
+    // reloadKey — только повод перечитать.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [venueId, date, duration, reloadKey]);
 
   useEffect(load, [load]);
   // Вернулись на вкладку — окна могли занять, перечитываем.
@@ -99,23 +141,7 @@ export function BookingPicker({
     (_, i) => addDays(today, i),
   );
 
-  const time = (iso: string) =>
-    new Intl.DateTimeFormat("ru-RU", {
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: timezone,
-    }).format(new Date(iso));
-  const dayLabel = (d: string) =>
-    d === today
-      ? t("today")
-      : d === addDays(today, 1)
-        ? t("tomorrow")
-        : new Intl.DateTimeFormat("ru-RU", {
-            weekday: "short",
-            day: "numeric",
-            month: "short",
-            timeZone: "UTC",
-          }).format(new Date(`${d}T00:00:00Z`));
+  const dayLabel = (d: string) => dayLabelOf(d, today, t);
   const durationLabel = (m: number) =>
     t("durationValue", { hours: Math.floor(m / 60), minutes: m % 60 }).trim();
 
@@ -135,30 +161,6 @@ export function BookingPicker({
     next();
     setResourceId(null);
     onPick(null);
-  }
-
-  if (picked) {
-    const end = new Date(
-      Date.parse(picked.startsAt) + picked.durationMin * 60_000,
-    ).toISOString();
-    return (
-      <div
-        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
-        data-testid="picked-slot"
-      >
-        <p className="font-medium">
-          {t("selected", {
-            resource: picked.resourceName,
-            date: dayLabel(picked.date),
-            from: time(picked.startsAt),
-            to: time(end),
-          })}
-        </p>
-        <Button variant="outline" size="sm" onClick={() => onPick(null)}>
-          {t("change")}
-        </Button>
-      </div>
-    );
   }
 
   const selected = resources.find((r) => r.id === resourceId);

@@ -552,6 +552,9 @@ isOneToOne: false
 "is_venue_owner":
 { Args: { "p_venue_id": string }; Returns: boolean
                            },
+"lock_resource_bookings":
+{ Args: { "p_resource_id": string }; Returns: undefined
+                           },
 "lock_session":
 { Args: { "p_session_id": string }; Returns: {
               "booking_id": string | null,
