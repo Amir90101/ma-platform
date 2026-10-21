@@ -44,7 +44,7 @@ test("смена, сеанс с товарами и скидкой, оплата
   await expect(checkout.getByTestId("receipt-total")).toHaveText("2000 ₸");
 
   // Без смены оплату не принять (сценарий 7).
-  await checkout.getByRole("button", { name: "Закрыть" }).click();
+  await checkout.getByRole("button", { name: "Принять оплату" }).click();
   await expect(checkout.getByTestId("work-error")).toHaveText(
     "Смена не открыта: откройте смену, чтобы принять оплату",
   );
@@ -58,7 +58,7 @@ test("смена, сеанс с товарами и скидкой, оплата
   await checkout.getByRole("button", { name: "Разделить оплату" }).click();
   await expect(checkout.getByLabel("Оплата 2")).toHaveValue("kaspi");
   await expect(checkout.getByLabel("Сумма, ₸ 2")).toHaveValue("500");
-  await checkout.getByRole("button", { name: "Закрыть" }).click();
+  await checkout.getByRole("button", { name: "Принять оплату" }).click();
   await expect(resourceButton(page, "Стол 1")).toHaveAttribute(
     "data-state",
     "free",

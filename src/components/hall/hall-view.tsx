@@ -685,7 +685,8 @@ function SessionCard({
         <p className="text-sm">
           {session.guest && tw("guest", { guest: session.guest })}
           {session.guest && session.packageName && " · "}
-          {session.packageName}
+          {session.packageName &&
+            tw("packageLine", { name: session.packageName })}
         </p>
       )}
       <dl className="bg-muted/60 grid grid-cols-2 gap-3 rounded-lg p-3">
