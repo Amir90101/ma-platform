@@ -44,21 +44,31 @@ async function Bookings({
   if (!access) return <p role="alert">{tVenue("notFound")}</p>;
   const { supabase, venue } = access;
 
-  const [{ data: venueRow }, { data: halls }, { data: resources }] =
-    await Promise.all([
-      supabase.from("venues").select("timezone").eq("id", venue.id).single(),
-      supabase
-        .from("halls")
-        .select("id, name")
-        .eq("venue_id", venue.id)
-        .order("sort")
-        .order("created_at"),
-      supabase
-        .from("resources")
-        .select("id, name, hall_id, is_active")
-        .eq("venue_id", venue.id)
-        .order("name"),
-    ]);
+  const [
+    { data: venueRow },
+    { data: halls },
+    { data: resources },
+    { data: packages },
+  ] = await Promise.all([
+    supabase.from("venues").select("timezone").eq("id", venue.id).single(),
+    supabase
+      .from("halls")
+      .select("id, name")
+      .eq("venue_id", venue.id)
+      .order("sort")
+      .order("created_at"),
+    supabase
+      .from("resources")
+      .select("id, name, hall_id, is_active, kind")
+      .eq("venue_id", venue.id)
+      .order("name"),
+    supabase
+      .from("packages")
+      .select("id, name, minutes, price, resource_kinds")
+      .eq("venue_id", venue.id)
+      .eq("is_active", true)
+      .order("minutes"),
+  ]);
   const timezone = venueRow?.timezone ?? "Asia/Almaty";
   const today = todayIn(timezone);
   const date = isDateString(dateParam) ? dateParam : today;
@@ -82,6 +92,7 @@ async function Bookings({
     name: r.name,
     hallName: (halls?.length ?? 0) > 1 ? (hallNames.get(r.hall_id) ?? "") : "",
     isActive: r.is_active,
+    kind: r.kind as string,
   }));
   const href = (d: string) => `/app/${venue.id}/bookings?date=${d}`;
   const dateLabel = new Intl.DateTimeFormat("ru-RU", {
@@ -174,6 +185,7 @@ async function Bookings({
             comment: b.comment,
             cancelReason: b.cancel_reason,
             cancelledByGuest: b.cancelled_by_guest,
+            packageName: b.package_name,
           }))}
         />
 
@@ -183,6 +195,13 @@ async function Bookings({
           date={date}
           timezone={timezone}
           resources={options.filter((r) => r.isActive)}
+          packages={(packages ?? []).map((p) => ({
+            id: p.id,
+            name: p.name,
+            minutes: p.minutes,
+            price: p.price,
+            resourceKinds: p.resource_kinds as string[],
+          }))}
         />
       </div>
     </>

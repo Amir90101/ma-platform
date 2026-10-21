@@ -92,10 +92,23 @@ export async function createManualBooking(
     venue.timezone,
   );
 
+  // С тарифом конец брони — начало плюс минуты тарифа.
+  let ends = endsAt;
+  if (v.package_id) {
+    const { data: pkg } = await supabase
+      .from("packages")
+      .select("minutes")
+      .eq("id", v.package_id)
+      .single();
+    if (!pkg) return { ok: false, error: "package_not_found" };
+    ends = new Date(startsAt.getTime() + pkg.minutes * 60_000);
+  }
+
   const { error } = await supabase.rpc("create_manual_booking", {
     p_resource_id: v.resource_id,
     p_starts_at: startsAt.toISOString(),
-    p_ends_at: endsAt.toISOString(),
+    p_ends_at: ends.toISOString(),
+    p_package_id: v.package_id || undefined,
     p_customer_phone: v.phone,
     p_customer_name: v.name || undefined,
     p_guests: v.guests ?? undefined,

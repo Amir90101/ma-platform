@@ -39,6 +39,18 @@ const HallCanvas = dynamic(() => import("./hall-canvas"), {
 });
 
 const DURATIONS = [30, 60, 90, 120, 180, 240];
+const PER_MINUTE = "per-minute";
+
+// «3 ч», «1 ч 30 мин», «45 мин».
+export function formatMinutes(
+  tw: ReturnType<typeof useTranslations<"Work">>,
+  minutes: number,
+) {
+  return tw("hoursMinutes", {
+    hours: Math.floor(minutes / 60),
+    minutes: minutes % 60,
+  }).trim();
+}
 
 // Цвета статусов — токены из globals.css, те же, что на карте.
 const STATE_DOT = {
@@ -60,7 +72,13 @@ const REALTIME_TABLES = [
 ] as const;
 
 export type VenueResource = { id: string; name: string; hallName: string };
-export type PackageOption = { id: string; name: string };
+export type PackageOption = {
+  id: string;
+  name: string;
+  minutes: number;
+  price: number;
+  resourceKinds: string[];
+};
 
 // Часы браузера с поправкой на время сервера: таймеры не зависят от того,
 // насколько точно идут часы на компьютере администратора. Поправку меряем
@@ -452,6 +470,7 @@ function BookingNotice({
           {b.guests && <> · {tb("guestsCount", { count: b.guests })}</>}
         </p>
       )}
+      {b.packageName && <p>{tw("bookingTariff", { name: b.packageName })}</p>}
       {b.noShowCount > 0 && (
         <p className="font-medium text-amber-800 dark:text-amber-300">
           {tb("noShows", { count: b.noShowCount })}
@@ -486,10 +505,19 @@ function StartForm({
   const tw = useTranslations("Work");
   const { pending, error, run } = useAction();
   const hydrated = useHydrated();
+  // Тарифы-пакеты этого вида места. Есть пакеты — сначала выбирают тариф:
+  // он задаёт и время, и цену. «Поминутно» — по тарифам заведения.
+  const tariffs = packages.filter((p) =>
+    p.resourceKinds.includes(resource.kind),
+  );
+  const [choice, setChoice] = useState<string | null>(
+    tariffs.length ? null : PER_MINUTE,
+  );
+  const picked = tariffs.find((p) => p.id === choice);
 
   return (
     <form
-      className="grid gap-3"
+      className="grid gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
@@ -500,35 +528,72 @@ function StartForm({
         });
       }}
     >
+      {tariffs.length > 0 && (
+        <fieldset className="grid gap-2">
+          <legend className="mb-2 text-sm font-medium">{tw("tariff")}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {[...tariffs, null].map((p) => {
+              const value = p?.id ?? PER_MINUTE;
+              return (
+                <label
+                  key={value}
+                  className="has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-primary hover:bg-muted/60 flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-checked:ring-1"
+                >
+                  <input
+                    type="radio"
+                    name="tariff"
+                    value={value}
+                    checked={choice === value}
+                    onChange={() => setChoice(value)}
+                    className="accent-primary mt-0.5 size-4 shrink-0"
+                  />
+                  <span className="grid gap-0.5">
+                    <span className="text-sm font-medium">
+                      {p ? p.name : tw("perMinute")}
+                    </span>
+                    <span className="text-muted-foreground text-xs">
+                      {p
+                        ? tw("tariffLine", {
+                            duration: formatMinutes(tw, p.minutes),
+                            price: p.price.toLocaleString("ru-RU"),
+                          })
+                        : tw("perMinuteHint")}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+      {picked && (
+        <>
+          <input type="hidden" name="package" value={picked.id} />
+          <input type="hidden" name="duration" value={picked.minutes} />
+        </>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-2">
-        <div className="grid gap-1.5">
-          <Label htmlFor="start-duration">{tw("duration")}</Label>
-          <NativeSelect id="start-duration" name="duration" className="w-full">
-            <NativeSelectOption value="">
-              {tw("durationNone")}
-            </NativeSelectOption>
-            {DURATIONS.map((m) => (
-              <NativeSelectOption key={m} value={m}>
-                {m % 60 === 0
-                  ? tw("durationHours", { hours: m / 60 })
-                  : tw("durationMinutes", { minutes: m })}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </div>
-        {packages.length > 0 && (
-          <div className="grid gap-1.5">
-            <Label htmlFor="start-package">{tw("package")}</Label>
-            <NativeSelect id="start-package" name="package" className="w-full">
+        {choice === PER_MINUTE && (
+          <div className="grid gap-1.5 sm:col-span-2">
+            <Label htmlFor="start-duration">{tw("duration")}</Label>
+            <NativeSelect
+              id="start-duration"
+              name="duration"
+              className="w-full"
+            >
               <NativeSelectOption value="">
-                {tw("packageNone")}
+                {tw("durationNone")}
               </NativeSelectOption>
-              {packages.map((p) => (
-                <NativeSelectOption key={p.id} value={p.id}>
-                  {p.name}
+              {DURATIONS.map((m) => (
+                <NativeSelectOption key={m} value={m}>
+                  {m % 60 === 0
+                    ? tw("durationHours", { hours: m / 60 })
+                    : tw("durationMinutes", { minutes: m })}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
+            <p className="text-muted-foreground text-xs">{tw("noEndHint")}</p>
           </div>
         )}
         <div className="grid gap-1.5">
@@ -551,14 +616,21 @@ function StartForm({
           />
         </div>
       </div>
-      <p className="text-muted-foreground text-xs">{tw("noEndHint")}</p>
       {/* «Стол занят» показывает панель: форма исчезнет со статусом стола. */}
       <ActionError error={error === "resource_busy" ? undefined : error} />
-      <div>
-        <Button type="submit" size="lg" disabled={pending || !hydrated}>
-          {pending ? tw("starting") : tw("start")}
-        </Button>
-      </div>
+      <Button
+        type="submit"
+        size="lg"
+        className="w-full"
+        disabled={pending || !hydrated || choice === null}
+      >
+        <Play aria-hidden="true" />
+        {pending
+          ? tw("starting")
+          : choice === null
+            ? tw("chooseTariff")
+            : tw("start")}
+      </Button>
     </form>
   );
 }

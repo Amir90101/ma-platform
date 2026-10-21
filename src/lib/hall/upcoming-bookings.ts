@@ -10,6 +10,7 @@ export type UpcomingBooking = {
   guest: string | null;
   guests: number | null;
   noShowCount: number;
+  packageName: string | null;
 };
 
 // Ближайшие 12 часов ждущих броней: предупреждение при старте стола и
@@ -25,7 +26,7 @@ export async function loadUpcomingBookings(
   const { data } = await supabase
     .from("bookings")
     .select(
-      "id, resource_id, starts_at, ends_at, guests, customer_id, customers(name, phone)",
+      "id, resource_id, starts_at, ends_at, guests, customer_id, customers(name, phone), packages(name)",
     )
     .eq("venue_id", venueId)
     .eq("status", "confirmed")
@@ -57,5 +58,6 @@ export async function loadUpcomingBookings(
       null,
     guests: b.guests,
     noShowCount: noShows.get(b.customer_id) ?? 0,
+    packageName: b.packages?.name ?? null,
   }));
 }

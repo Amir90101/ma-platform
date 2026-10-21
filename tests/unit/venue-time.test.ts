@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  addMinutesToTime,
   bookingRange,
   isDateString,
   isoWeekday,
@@ -93,5 +94,10 @@ describe("venue-time", () => {
       "Asia/Almaty",
     );
     expect(r.startsAt.toISOString()).toBe("2026-10-19T20:00:00.000Z");
+  });
+
+  it("прибавляет минуты ко времени, через полночь — по кругу", () => {
+    expect(addMinutesToTime("14:00", 180)).toBe("17:00");
+    expect(addMinutesToTime("23:30", 90)).toBe("01:00");
   });
 });

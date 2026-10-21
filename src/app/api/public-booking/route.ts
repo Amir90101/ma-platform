@@ -16,6 +16,7 @@ const KNOWN_ERRORS = new Set([
   "duration_invalid",
   "phone_invalid",
   "name_required",
+  "package_not_found",
 ]);
 
 function reply(body: PublicBookingResponse, status: number) {
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
       p_ip: ip ?? undefined,
       p_max_active_per_phone: limit("PUBLIC_BOOKING_MAX_ACTIVE_PER_PHONE", 2),
       p_max_active_per_ip: limit("PUBLIC_BOOKING_MAX_ACTIVE_PER_IP", 5),
+      p_package_id: input.packageId ?? undefined,
     },
   );
   if (error) {

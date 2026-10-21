@@ -37,6 +37,8 @@ export const manualBookingSchema = z
           .nullable(),
       ),
     comment: z.string().trim().max(500, "tooLong"),
+    // Тариф-пакет: пусто — «своё время».
+    package_id: z.union([z.literal(""), z.guid("unknown")]),
   })
   .refine((v) => v.start !== v.end, { message: "timeEqual", path: ["end"] });
 
@@ -50,5 +52,6 @@ export function manualBookingFromForm(formData: FormData) {
     name: field("name"),
     guests: field("guests"),
     comment: field("comment"),
+    package_id: field("package_id"),
   };
 }
