@@ -529,6 +529,9 @@ isOneToOne: false
               "blocked_until": string,"cancel_reason": string,"cancelled_by_guest": boolean,"comment": string,"created_at": string,"customer_id": string,"customer_name": string,"customer_phone": string,"ends_at": string,"guests": number,"id": string,"no_show_count": number,"resource_id": string,"session_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"]
             }[]
                            },
+"get_load_report":
+{ Args: { "p_from": string,"p_to": string,"p_venue_id": string }; Returns: Json
+                           },
 "get_org_staff":
 { Args: { "p_org_id": string }; Returns: {
               "created_at": string,"email": string,"full_name": string,"role": Database["public"]['Enums']["member_role"],"user_id": string

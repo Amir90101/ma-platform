@@ -7,7 +7,11 @@ import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { periodPresets, reportPeriod } from "@/lib/report-period";
-import { PAYMENT_METHODS, type RevenueReport } from "@/lib/reports";
+import {
+  type LoadReport,
+  PAYMENT_METHODS,
+  type RevenueReport,
+} from "@/lib/reports";
 import { getVenueAccess } from "@/lib/venue-access";
 import { todayIn } from "@/lib/venue-time";
 
@@ -51,12 +55,13 @@ async function Reports({
     .single();
   const today = todayIn(venueRow?.timezone ?? "Asia/Almaty");
   const { from, to } = reportPeriod(today, query.from, query.to);
-  const { data, error } = await supabase.rpc("get_revenue_report", {
-    p_venue_id: venue.id,
-    p_from: from,
-    p_to: to,
-  });
+  const period = { p_venue_id: venue.id, p_from: from, p_to: to };
+  const [{ data, error }, { data: loadData }] = await Promise.all([
+    supabase.rpc("get_revenue_report", period),
+    supabase.rpc("get_load_report", period),
+  ]);
   const revenue = data as RevenueReport | null;
+  const load = loadData as LoadReport | null;
   const href = (p: { from: string; to: string }) =>
     `/app/${venue.id}/reports?from=${p.from}&to=${p.to}`;
   const money = (amount: number) =>
@@ -269,6 +274,169 @@ async function Reports({
           )}
         </section>
       )}
+
+      {load && <LoadSection load={load} dayLabel={dayLabel} />}
+    </>
+  );
+}
+
+async function LoadSection({
+  load,
+  dayLabel,
+}: {
+  load: LoadReport;
+  dayLabel: (day: string) => string;
+}) {
+  const t = await getTranslations("Reports");
+  const hours = (minutes: number) =>
+    t("hoursValue", {
+      hours: (Math.round(minutes / 6) / 10).toLocaleString("ru-RU"),
+    });
+  const { bookings } = load;
+  return (
+    <>
+      <section className="grid gap-3" data-testid="load">
+        <h2 className="text-xl font-semibold">{t("loadTitle")}</h2>
+        <p className="text-muted-foreground text-sm">{t("loadHint")}</p>
+        {load.open_minutes === 0 ? (
+          <p className="text-muted-foreground">{t("noOpenHours")}</p>
+        ) : (
+          <>
+            <p className="text-sm">
+              {t("openHours", {
+                hours: (Math.round(load.open_minutes / 6) / 10).toLocaleString(
+                  "ru-RU",
+                ),
+              })}
+            </p>
+            <table className="w-full text-sm" data-testid="load-resources">
+              <thead className="text-muted-foreground text-left">
+                <tr>
+                  <th className="py-1 font-normal">{t("resource")}</th>
+                  <th className="py-1 text-right font-normal">{t("busy")}</th>
+                  <th className="py-1 text-right font-normal">
+                    {t("percent")}
+                  </th>
+                  <th className="w-1/3 py-1 pl-3 font-normal">
+                    <span className="sr-only">{t("percent")}</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {load.resources.map((r) => (
+                  <tr key={r.resource_id}>
+                    <td className="py-1.5">{r.name}</td>
+                    <td className="py-1.5 text-right tabular-nums">
+                      {hours(r.busy_minutes)}
+                    </td>
+                    <td className="py-1.5 text-right font-medium tabular-nums">
+                      {(r.percent ?? 0).toLocaleString("ru-RU")} %
+                    </td>
+                    <td className="py-1.5 pl-3">
+                      <div className="bg-muted h-2 overflow-hidden rounded-full">
+                        <div
+                          className="bg-primary/70 h-full rounded-full"
+                          style={{ width: `${Math.min(r.percent ?? 0, 100)}%` }}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </section>
+
+      <section className="grid gap-3" data-testid="bookings-stats">
+        <h2 className="text-xl font-semibold">{t("bookingsTitle")}</h2>
+        <p className="text-muted-foreground text-sm">{t("bookingsHint")}</p>
+        <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="rounded-lg border p-3">
+            <dt className="text-muted-foreground text-sm">
+              {t("bookingsTotal")}
+            </dt>
+            <dd
+              className="text-xl font-medium tabular-nums"
+              data-testid="bookings-total"
+            >
+              {bookings.total}
+            </dd>
+          </div>
+          <div className="rounded-lg border p-3">
+            <dt className="text-muted-foreground text-sm">
+              {t("onlineShare")}
+            </dt>
+            <dd
+              className="text-xl font-medium tabular-nums"
+              data-testid="bookings-online"
+            >
+              {t("onlineShareValue", {
+                count: bookings.online,
+                share: (bookings.online_share ?? 0).toLocaleString("ru-RU"),
+              })}
+            </dd>
+          </div>
+          <div className="rounded-lg border p-3">
+            <dt className="text-muted-foreground text-sm">
+              {t("noShowsTotal")}
+            </dt>
+            <dd
+              className="text-xl font-medium tabular-nums"
+              data-testid="bookings-no-show"
+            >
+              {bookings.no_show}
+            </dd>
+          </div>
+          <div className="rounded-lg border p-3">
+            <dt className="text-muted-foreground text-sm">
+              {t("onlineNoShows")}
+            </dt>
+            <dd className="text-xl font-medium tabular-nums">
+              {bookings.online_no_show}
+            </dd>
+          </div>
+        </dl>
+        {bookings.no_show === 0 ? (
+          <p className="text-muted-foreground">{t("noNoShows")}</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid content-start gap-2">
+              <h3 className="font-medium">{t("noShowsByDay")}</h3>
+              <ul className="divide-y text-sm">
+                {load.no_shows_by_day.map((d) => (
+                  <li key={d.day} className="flex justify-between py-1.5">
+                    <span>{dayLabel(d.day)}</span>
+                    <span className="tabular-nums">{d.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="grid content-start gap-2">
+              <h3 className="font-medium">{t("noShowsByGuest")}</h3>
+              <ul className="divide-y text-sm" data-testid="no-show-guests">
+                {load.no_shows_by_guest.map((g) => (
+                  <li
+                    key={g.phone}
+                    className="flex justify-between gap-2 py-1.5"
+                  >
+                    <span>
+                      {g.name ?? t("noName")}{" "}
+                      <a
+                        href={`tel:${g.phone}`}
+                        className="text-muted-foreground hover:underline"
+                      >
+                        {g.phone}
+                      </a>
+                    </span>
+                    <span className="tabular-nums">{g.count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </section>
     </>
   );
 }
