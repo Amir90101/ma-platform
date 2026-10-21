@@ -27,6 +27,7 @@ import type { ItemStatus } from "./hall-canvas";
 import type { EditorItem } from "./hall-editor";
 import { type OpenShift, ShiftBar } from "./shift-bar";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
+import { useVenueRealtime } from "@/lib/hooks/use-venue-realtime";
 
 const HallCanvas = dynamic(() => import("./hall-canvas"), {
   ssr: false,
@@ -34,6 +35,8 @@ const HallCanvas = dynamic(() => import("./hall-canvas"), {
 });
 
 const DURATIONS = [30, 60, 90, 120, 180, 240];
+// Статусы столов и смена во всех открытых окнах.
+const REALTIME_TABLES = ["session_segments", "sessions", "shifts"] as const;
 
 export type VenueResource = { id: string; name: string; hallName: string };
 export type PackageOption = { id: string; name: string };
@@ -59,61 +62,6 @@ function useServerClock() {
     return () => clearInterval(id);
   }, [offset]);
   return now;
-}
-
-// Статусы столов и смена во всех открытых окнах: изменения отрезков,
-// сеансов и смен приходят из Supabase Realtime (RLS пускает только
-// участников), и страница перечитывает данные с сервера.
-function useVenueRealtime(venueId: string): "connecting" | "on" {
-  const router = useRouter();
-  const [state, setState] = useState<"connecting" | "on">("connecting");
-  useEffect(() => {
-    const supabase = createClient();
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let channel: ReturnType<typeof supabase.channel> | undefined;
-    let cancelled = false;
-    // Одно действие меняет несколько строк: собираем их в одну перерисовку.
-    const refresh = () => {
-      clearTimeout(timer);
-      timer = setTimeout(() => router.refresh(), 150);
-    };
-    const filter = `venue_id=eq.${venueId}`;
-
-    // Сессия из cookie не вызывает событие входа, и Realtime остался бы
-    // с anon-ключом: RLS не отдал бы изменения. Передаём токен явно.
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (cancelled) return;
-      if (data.session) {
-        await supabase.realtime.setAuth(data.session.access_token);
-      }
-      channel = supabase
-        .channel(`venue-${venueId}`)
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "session_segments", filter },
-          refresh,
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "sessions", filter },
-          refresh,
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "shifts", filter },
-          refresh,
-        )
-        .subscribe((status) => {
-          if (status === "SUBSCRIBED") setState("on");
-        });
-    });
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-      if (channel) supabase.removeChannel(channel);
-    };
-  }, [venueId, router]);
-  return state;
 }
 
 function formatElapsed(ms: number) {
@@ -156,7 +104,7 @@ export function HallView({
   // Отказ показываем на уровне панели: форма старта исчезнет, когда
   // придёт новый статус стола.
   const [busyNotice, setBusyNotice] = useState<string | null>(null);
-  const realtime = useVenueRealtime(venueId);
+  const realtime = useVenueRealtime(venueId, REALTIME_TABLES);
 
   // Сумма считается в базе: раз в минуту перечитываем страницу.
   useEffect(() => {
