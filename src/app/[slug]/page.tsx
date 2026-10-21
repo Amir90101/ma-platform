@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { PublicBooking } from "@/components/public/public-booking";
 import { buttonVariants } from "@/components/ui/button";
 import {
   getPublicVenue,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/public-venue";
 import { formatWeekdays, hhmm } from "@/lib/schedule-format";
 import { siteUrl } from "@/lib/site-url";
+import { todayIn } from "@/lib/venue-time";
 
 export async function generateMetadata({
   params,
@@ -62,6 +64,10 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
   const t = await getTranslations("Public");
   const tVenue = await getTranslations("Venue");
   const tCommon = await getTranslations("Common");
+  const tBooking = await getTranslations("PublicBooking");
+  const bookable =
+    venue.online_booking_enabled &&
+    venue.halls.some((h) => h.resources.some((r) => r.bookable_online));
   const place = [venue.city, venue.address].filter(Boolean).join(", ");
 
   return (
@@ -94,6 +100,11 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
         <h1 className="text-3xl font-semibold tracking-tight">{venue.name}</h1>
         <p>{place}</p>
         <div className="flex flex-wrap gap-2">
+          {bookable && (
+            <a href="#booking" className={buttonVariants({ size: "sm" })}>
+              {tBooking("book")}
+            </a>
+          )}
           <a
             href={`https://2gis.kz/search/${encodeURIComponent(place)}`}
             target="_blank"
@@ -121,6 +132,27 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
         <p className="leading-relaxed whitespace-pre-line">
           {venue.description}
         </p>
+      )}
+
+      {bookable && (
+        <section
+          id="booking"
+          className="grid scroll-mt-4 gap-3"
+          aria-labelledby="booking-title"
+        >
+          <h2 id="booking-title" className="text-lg font-medium">
+            {tBooking("title")}
+          </h2>
+          <PublicBooking
+            venueId={venue.id}
+            timezone={venue.timezone}
+            today={todayIn(venue.timezone)}
+            maxDaysAhead={venue.max_days_ahead}
+            minDuration={venue.min_duration_min}
+            slotStep={venue.slot_step_min}
+            halls={venue.halls}
+          />
+        </section>
       )}
 
       <Hours venue={venue} />

@@ -158,3 +158,23 @@ export async function seedBooking(
     .single();
   return { id: booking!.id, startsAt };
 }
+
+// Опубликованное заведение с круглосуточными часами: окна на публичной
+// странице есть в любое время запуска тестов.
+export async function seedPublicVenue(ownerEmail: string, tableCount = 3) {
+  const venue = await seedWorkVenue(ownerEmail, tableCount);
+  const { data } = await admin
+    .from("venues")
+    .update({
+      is_published: true,
+      working_hours: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+        weekday,
+        open: "00:00",
+        close: "00:00",
+      })),
+    })
+    .eq("id", venue.venueId)
+    .select("slug")
+    .single();
+  return { ...venue, slug: data!.slug };
+}
