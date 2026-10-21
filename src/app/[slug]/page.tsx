@@ -150,6 +150,7 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
             maxDaysAhead={venue.max_days_ahead}
             minDuration={venue.min_duration_min}
             slotStep={venue.slot_step_min}
+            noShowAfterMin={venue.no_show_after_min}
             halls={venue.halls}
           />
         </section>
