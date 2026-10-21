@@ -121,7 +121,7 @@ export function CheckoutPanel({
       </section>
 
       <form
-        className="grid grid-cols-[1fr_6rem_4rem_auto] items-end gap-2"
+        className="grid grid-cols-2 items-end gap-2 rounded-lg border border-dashed p-3"
         onSubmit={(e) => {
           e.preventDefault();
           const form = e.currentTarget;
@@ -136,7 +136,7 @@ export function CheckoutPanel({
           });
         }}
       >
-        <div className="grid min-w-0 gap-1">
+        <div className="col-span-2 grid min-w-0 gap-1">
           <Label htmlFor="item-name" className="text-xs">
             {tw("itemName")}
           </Label>
@@ -160,7 +160,12 @@ export function CheckoutPanel({
             defaultValue={1}
           />
         </div>
-        <Button type="submit" variant="outline" disabled={pending || !hydrated}>
+        <Button
+          type="submit"
+          variant="outline"
+          className="col-span-2"
+          disabled={pending || !hydrated}
+        >
           {tw("addItem")}
         </Button>
       </form>
@@ -176,7 +181,7 @@ export function CheckoutPanel({
         />
       </div>
 
-      <p className="flex justify-between text-lg font-semibold">
+      <p className="bg-muted flex items-baseline justify-between rounded-lg px-4 py-3 text-xl font-semibold tabular-nums">
         <span>{tw("total")}</span>
         <span data-testid="receipt-total">
           {tw("currency", { amount: total })}
@@ -186,8 +191,9 @@ export function CheckoutPanel({
       <fieldset className="grid gap-2">
         <legend className="mb-1 text-sm font-medium">{tw("payment")}</legend>
         {rows.map((row, i) => (
-          <div key={i} className="flex flex-wrap items-center gap-2">
+          <div key={i} className="flex items-center gap-2">
             <NativeSelect
+              className="min-w-0 flex-1"
               aria-label={`${tw("payment")} ${i + 1}`}
               value={row.method}
               onChange={(e) =>
@@ -207,7 +213,7 @@ export function CheckoutPanel({
             <Input
               type="number"
               min={0}
-              className="w-32"
+              className="w-28"
               aria-label={`${tw("paymentAmount")} ${i + 1}`}
               value={row.amount}
               onChange={(e) =>
@@ -249,7 +255,7 @@ export function CheckoutPanel({
           </Button>
         </div>
         {distributed !== total && (
-          <p className="text-sm text-amber-700">
+          <p className="text-status-paused text-sm font-medium">
             {tw("paidLeft", { amount: total - distributed })}
           </p>
         )}
@@ -260,10 +266,11 @@ export function CheckoutPanel({
           {tw(`errors.${error}`)}
         </p>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-2">
         <Button
           type="button"
           size="lg"
+          className="w-full"
           disabled={pending || !hydrated}
           onClick={() =>
             startTransition(async () => {
@@ -283,7 +290,12 @@ export function CheckoutPanel({
         >
           {pending ? tw("checkingOut") : tw("checkout")}
         </Button>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          onClick={onCancel}
+        >
           {tw("backToGame")}
         </Button>
       </div>

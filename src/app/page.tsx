@@ -23,12 +23,12 @@ const FEATURES = [
 
 // Схематичный зал для первого экрана: несколько столов в разных статусах.
 const DEMO_TABLES = [
-  { n: 1, state: "busy", caption: "1:24:05" },
-  { n: 2, state: "free", caption: "" },
-  { n: 3, state: "booked", caption: "booked" },
-  { n: 4, state: "paused", caption: "0:47:12" },
-  { n: 5, state: "free", caption: "" },
-  { n: 6, state: "busy", caption: "2:10:31" },
+  { key: "ps1", state: "busy", caption: "1:24:05" },
+  { key: "ps2", state: "free", caption: "" },
+  { key: "table", state: "booked", caption: "booked" },
+  { key: "karaoke", state: "paused", caption: "0:47:12" },
+  { key: "vip", state: "free", caption: "" },
+  { key: "court", state: "busy", caption: "2:10:31" },
 ] as const;
 
 const TONE = {
@@ -82,7 +82,7 @@ export default async function Home() {
           {/* Иллюстрация: как выглядит карта зала. */}
           <div
             aria-hidden="true"
-            className="bg-sidebar rounded-3xl p-4 shadow-xl sm:p-6"
+            className="bg-foreground rounded-3xl p-3 shadow-2xl sm:p-4"
           >
             <div className="bg-background grid gap-4 rounded-2xl p-4 sm:p-5">
               <div className="flex items-center justify-between text-sm">
@@ -92,14 +92,14 @@ export default async function Home() {
               <div className="grid grid-cols-3 gap-3">
                 {DEMO_TABLES.map((table) => (
                   <div
-                    key={table.n}
+                    key={table.key}
                     className={cn(
                       "grid aspect-[4/3] content-center justify-items-center gap-1 rounded-xl border-2 p-2 text-center",
                       TONE[table.state],
                     )}
                   >
                     <span className="text-foreground text-sm font-semibold">
-                      {t("mockTable", { n: table.n })}
+                      {t(`mockPlaces.${table.key}`)}
                     </span>
                     <span className="text-xs font-medium tabular-nums">
                       {table.caption === "booked"
@@ -170,10 +170,8 @@ export default async function Home() {
         </section>
 
         <section className="px-4 pb-16">
-          <div className="bg-sidebar text-sidebar-foreground mx-auto grid w-full max-w-6xl justify-items-start gap-4 rounded-3xl p-8 sm:p-12">
-            <h2 className="text-sidebar-accent-foreground max-w-xl text-3xl font-semibold">
-              {t("ctaTitle")}
-            </h2>
+          <div className="bg-primary text-primary-foreground mx-auto grid w-full max-w-6xl justify-items-start gap-4 rounded-3xl p-8 sm:p-12">
+            <h2 className="max-w-xl text-3xl font-semibold">{t("ctaTitle")}</h2>
             <p className="max-w-xl">{t("ctaText")}</p>
             <Link
               href="/register"

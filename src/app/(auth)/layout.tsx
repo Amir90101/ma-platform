@@ -15,21 +15,21 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
   ];
   return (
     <div className="grid flex-1 lg:grid-cols-2">
-      <aside className="bg-sidebar text-sidebar-foreground relative hidden overflow-hidden p-12 lg:flex lg:flex-col">
+      <aside className="bg-primary text-primary-foreground relative hidden overflow-hidden p-12 lg:flex lg:flex-col">
         <Link href="/" aria-label={tCommon("productName")}>
           <Logo
             name={tCommon("productName")}
-            className="text-sidebar-accent-foreground text-lg"
+            className="text-lg [&_rect:first-child]:fill-white/20"
           />
         </Link>
         <div className="my-auto grid max-w-md gap-8">
-          <h2 className="text-sidebar-accent-foreground text-4xl leading-tight font-semibold">
+          <h2 className="text-4xl leading-tight font-semibold">
             {t("authTitle")}
           </h2>
           <ul className="grid gap-4">
             {points.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-start gap-3">
-                <span className="bg-sidebar-accent text-sidebar-primary grid size-9 shrink-0 place-items-center rounded-lg">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-white/15">
                   <Icon aria-hidden="true" className="size-5" />
                 </span>
                 <span className="pt-1.5">{text}</span>
@@ -40,7 +40,7 @@ export default async function AuthLayout({ children }: LayoutProps<"/">) {
         {/* Декор: силуэт шара на сукне. */}
         <div
           aria-hidden="true"
-          className="bg-sidebar-primary/10 absolute -right-24 -bottom-24 size-96 rounded-full"
+          className="absolute -right-24 -bottom-24 size-96 rounded-full bg-white/10"
         />
       </aside>
       <main className="flex flex-col items-center justify-center px-4 py-10">

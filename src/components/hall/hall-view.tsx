@@ -155,6 +155,7 @@ export function HallView({
   // придёт новый статус стола.
   const [busyNotice, setBusyNotice] = useState<string | null>(null);
   const realtime = useVenueRealtime(venueId, REALTIME_TABLES);
+  const hydrated = useHydrated();
   const panelRef = useRef<HTMLElement>(null);
   // На телефоне панель стола под картой: после выбора стола показываем её.
   useEffect(() => {
@@ -315,7 +316,9 @@ export function HallView({
                     </span>
                     <span className="text-muted-foreground pl-4.5 text-xs tabular-nums">
                       <span className="sr-only"> · </span>
-                      {s
+                      {/* Таймер — только в браузере: время сервера и
+                          браузера при отрисовке расходятся на секунды. */}
+                      {s && hydrated
                         ? formatElapsed(now - Date.parse(s.startedAt))
                         : tw(state)}
                     </span>
@@ -531,13 +534,13 @@ function StartForm({
       {tariffs.length > 0 && (
         <fieldset className="grid gap-2">
           <legend className="mb-2 text-sm font-medium">{tw("tariff")}</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2">
             {[...tariffs, null].map((p) => {
               const value = p?.id ?? PER_MINUTE;
               return (
                 <label
                   key={value}
-                  className="has-checked:border-primary has-checked:bg-primary/5 has-checked:ring-primary hover:bg-muted/60 flex cursor-pointer items-start gap-3 rounded-lg border p-3 has-checked:ring-1"
+                  className="has-checked:border-primary has-checked:bg-secondary has-checked:ring-primary hover:bg-muted/60 relative grid cursor-pointer gap-1 rounded-lg border p-3 has-checked:ring-1"
                 >
                   <input
                     type="radio"
@@ -545,21 +548,27 @@ function StartForm({
                     value={value}
                     checked={choice === value}
                     onChange={() => setChoice(value)}
-                    className="accent-primary mt-0.5 size-4 shrink-0"
+                    className="accent-primary absolute top-3 right-3 size-4"
                   />
-                  <span className="grid gap-0.5">
-                    <span className="text-sm font-medium">
-                      {p ? p.name : tw("perMinute")}
-                    </span>
-                    <span className="text-muted-foreground text-xs">
-                      {p
-                        ? tw("tariffLine", {
-                            duration: formatMinutes(tw, p.minutes),
-                            price: p.price.toLocaleString("ru-RU"),
-                          })
-                        : tw("perMinuteHint")}
-                    </span>
+                  <span className="text-sm font-semibold">
+                    {p ? p.name : tw("perMinute")}
                   </span>
+                  {p ? (
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-muted-foreground text-xs">
+                        {formatMinutes(tw, p.minutes)}
+                      </span>
+                      <span className="text-base font-semibold tabular-nums">
+                        {tw("amountValue", {
+                          amount: p.price.toLocaleString("ru-RU"),
+                        })}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">
+                      {tw("perMinuteHint")}
+                    </span>
+                  )}
                 </label>
               );
             })}
@@ -676,7 +685,8 @@ function SessionCard({
         <p className="text-sm">
           {session.guest && tw("guest", { guest: session.guest })}
           {session.guest && session.packageName && " · "}
-          {session.packageName}
+          {session.packageName &&
+            tw("packageLine", { name: session.packageName })}
         </p>
       )}
       <dl className="bg-muted/60 grid grid-cols-2 gap-3 rounded-lg p-3">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import Link from "next/link";
 import {
@@ -12,8 +13,10 @@ import {
 } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { PageHeader, StatCard } from "@/components/app-shell/page-header";
+import { SetupChecklist } from "@/components/app-shell/setup-checklist";
 import { siteUrl } from "@/lib/site-url";
 import type { RevenueReport } from "@/lib/reports";
+import type { Database } from "@/lib/supabase/types";
 import { getVenueAccess } from "@/lib/venue-access";
 import { todayIn } from "@/lib/venue-time";
 
@@ -88,6 +91,7 @@ async function VenueHome({
     { data: shift },
     { data: bookings },
     revenue,
+    setup,
   ] = await Promise.all([
     supabase
       .from("resources")
@@ -113,6 +117,7 @@ async function VenueHome({
           p_to: today,
         })
       : Promise.resolve({ data: null }),
+    isOwner ? setupState(supabase, venue.id) : Promise.resolve(null),
   ]);
   const active = (bookings ?? []).filter(
     (b) => b.status === "confirmed" || b.status === "arrived",
@@ -200,6 +205,25 @@ async function VenueHome({
         )}
       </div>
 
+      {setup && info && !(setup.every((s) => s) && info.is_published) && (
+        <SetupChecklist
+          steps={[
+            { key: "hall", done: setup[0], href: `${base}/settings/hall` },
+            {
+              key: "tariffs",
+              done: setup[1],
+              href: `${base}/settings/tariffs`,
+            },
+            { key: "photos", done: setup[2], href: `${base}/settings` },
+            {
+              key: "publish",
+              done: info.is_published,
+              href: `${base}/settings/booking`,
+            },
+          ]}
+        />
+      )}
+
       {isOwner && info && (
         <section className="bg-card flex flex-wrap items-center justify-between gap-4 rounded-xl border p-4 shadow-xs">
           <div className="flex items-start gap-3">
@@ -254,4 +278,26 @@ async function VenueHome({
       )}
     </>
   );
+}
+
+// Готовы ли карта зала, цены и фото: [hall, tariffs, photos].
+async function setupState(
+  supabase: SupabaseClient<Database>,
+  venueId: string,
+): Promise<[boolean, boolean, boolean]> {
+  const count = (
+    table: "resources" | "tariffs" | "packages" | "venue_photos",
+  ) =>
+    supabase
+      .from(table)
+      .select("id", { count: "exact", head: true })
+      .eq("venue_id", venueId)
+      .then(({ count }) => (count ?? 0) > 0);
+  const [hall, tariffs, packages, photos] = await Promise.all([
+    count("resources"),
+    count("tariffs"),
+    count("packages"),
+    count("venue_photos"),
+  ]);
+  return [hall, tariffs || packages, photos];
 }

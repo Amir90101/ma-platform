@@ -7,8 +7,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-sans-family);
+  --font-mono: var(--font-mono-family);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
@@ -39,6 +39,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-success: var(--success);
   --color-status-free: var(--status-free);
   --color-status-free-soft: var(--status-free-soft);
   --color-status-busy: var(--status-busy);
@@ -57,93 +58,95 @@
 }
 
 :root {
-  /* Фирменный цвет — сукно бильярдного стола: глубокий зелёный.
-     Фон тёплый, почти белый; карточки белые. */
-  --background: oklch(0.985 0.004 165);
-  --foreground: oklch(0.2 0.02 200);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 200);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 200);
-  --primary: oklch(0.48 0.105 165);
-  --primary-foreground: oklch(0.99 0.005 165);
-  --secondary: oklch(0.95 0.015 165);
-  --secondary-foreground: oklch(0.3 0.06 170);
-  --muted: oklch(0.96 0.006 165);
-  --muted-foreground: oklch(0.48 0.02 200);
-  --accent: oklch(0.95 0.02 165);
-  --accent-foreground: oklch(0.3 0.06 170);
-  --destructive: oklch(0.56 0.2 25);
-  --border: oklch(0.91 0.01 165);
-  --input: oklch(0.88 0.012 165);
-  --ring: oklch(0.6 0.11 165);
-  --chart-1: oklch(0.55 0.12 165);
-  --chart-2: oklch(0.7 0.13 75);
-  --chart-3: oklch(0.6 0.13 250);
-  --chart-4: oklch(0.6 0.17 20);
-  --chart-5: oklch(0.55 0.1 300);
-  --radius: 0.75rem;
-  /* Боковая панель админки — тёмная, как стол в зале. */
-  --sidebar: oklch(0.24 0.035 175);
-  --sidebar-foreground: oklch(0.93 0.01 165);
-  --sidebar-primary: oklch(0.78 0.13 160);
-  --sidebar-primary-foreground: oklch(0.2 0.03 175);
-  --sidebar-accent: oklch(0.31 0.04 175);
-  --sidebar-accent-foreground: oklch(0.99 0 0);
-  --sidebar-border: oklch(0.34 0.03 175);
-  --sidebar-ring: oklch(0.6 0.11 165);
+  /* Нейтральная светлая тема общей платформы (дизайн-система ui-ux-pro-max):
+     slate-нейтральные, синий — действия, зелёный — успех. Статусы мест —
+     отдельные токены ниже. */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --secondary: #eff4ff;
+  --secondary-foreground: #1d4ed8;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #dc2626;
+  --border: #e2e8f0;
+  --input: #cbd5e1;
+  --ring: #2563eb;
+  --success: #059669;
+  --chart-1: #2563eb;
+  --chart-2: #059669;
+  --chart-3: #d97706;
+  --chart-4: #dc2626;
+  --chart-5: #7c3aed;
+  --radius: 0.625rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #334155;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eff4ff;
+  --sidebar-accent-foreground: #1d4ed8;
+  --sidebar-border: #e2e8f0;
+  --sidebar-ring: #2563eb;
 
   /* Статусы мест — одни и те же на карте, в списках и в легенде. */
-  --status-free: oklch(0.55 0.13 155);
-  --status-free-soft: oklch(0.95 0.05 155);
-  --status-busy: oklch(0.55 0.19 22);
-  --status-busy-soft: oklch(0.95 0.035 22);
-  --status-paused: oklch(0.66 0.15 70);
-  --status-paused-soft: oklch(0.96 0.05 85);
-  --status-booked: oklch(0.55 0.14 250);
-  --status-booked-soft: oklch(0.95 0.03 250);
+  --status-free: #059669;
+  --status-free-soft: #ecfdf5;
+  --status-busy: #dc2626;
+  --status-busy-soft: #fef2f2;
+  --status-paused: #d97706;
+  --status-paused-soft: #fffbeb;
+  --status-booked: #2563eb;
+  --status-booked-soft: #eff6ff;
 }
 
 .dark {
-  --background: oklch(0.18 0.015 190);
-  --foreground: oklch(0.96 0.005 165);
-  --card: oklch(0.22 0.018 190);
-  --card-foreground: oklch(0.96 0.005 165);
-  --popover: oklch(0.22 0.018 190);
-  --popover-foreground: oklch(0.96 0.005 165);
-  --primary: oklch(0.72 0.13 160);
-  --primary-foreground: oklch(0.18 0.03 175);
-  --secondary: oklch(0.28 0.025 180);
-  --secondary-foreground: oklch(0.96 0.005 165);
-  --muted: oklch(0.27 0.018 190);
-  --muted-foreground: oklch(0.72 0.015 190);
-  --accent: oklch(0.3 0.03 175);
-  --accent-foreground: oklch(0.96 0.005 165);
-  --destructive: oklch(0.7 0.19 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.6 0.11 165);
-  --chart-1: oklch(0.72 0.13 160);
-  --chart-2: oklch(0.78 0.13 75);
-  --chart-3: oklch(0.7 0.13 250);
-  --chart-4: oklch(0.7 0.17 20);
-  --chart-5: oklch(0.7 0.1 300);
-  --sidebar: oklch(0.15 0.02 180);
-  --sidebar-foreground: oklch(0.93 0.01 165);
-  --sidebar-primary: oklch(0.78 0.13 160);
-  --sidebar-primary-foreground: oklch(0.2 0.03 175);
-  --sidebar-accent: oklch(0.24 0.03 175);
-  --sidebar-accent-foreground: oklch(0.99 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.6 0.11 165);
-  --status-free: oklch(0.72 0.14 155);
-  --status-free-soft: oklch(0.3 0.06 155);
-  --status-busy: oklch(0.7 0.17 22);
-  --status-busy-soft: oklch(0.3 0.06 22);
-  --status-paused: oklch(0.78 0.14 75);
-  --status-paused-soft: oklch(0.32 0.06 75);
-  --status-booked: oklch(0.72 0.12 250);
-  --status-booked-soft: oklch(0.3 0.05 250);
+  --background: #0f172a;
+  --foreground: #f8fafc;
+  --card: #1b2336;
+  --card-foreground: #f8fafc;
+  --popover: #1b2336;
+  --popover-foreground: #f8fafc;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #1e2a44;
+  --secondary-foreground: #bfdbfe;
+  --muted: #272f42;
+  --muted-foreground: #94a3b8;
+  --accent: #272f42;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --border: #334155;
+  --input: #475569;
+  --ring: #3b82f6;
+  --success: #22c55e;
+  --chart-1: #3b82f6;
+  --chart-2: #22c55e;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #a78bfa;
+  --sidebar: #111827;
+  --sidebar-foreground: #cbd5e1;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e2a44;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #334155;
+  --sidebar-ring: #3b82f6;
+  --status-free: #22c55e;
+  --status-free-soft: #052e1f;
+  --status-busy: #ef4444;
+  --status-busy-soft: #3b0d0d;
+  --status-paused: #f59e0b;
+  --status-paused-soft: #3a2506;
+  --status-booked: #60a5fa;
+  --status-booked-soft: #0c1f3d;
 }
 
 @layer base {

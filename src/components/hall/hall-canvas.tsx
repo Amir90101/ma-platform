@@ -35,10 +35,10 @@ const STATUS_STYLE: Record<
   { fill: string; stroke: string; text: string }
 > = {
   // Те же оттенки, что токены --status-* в globals.css.
-  free: { fill: "#e4f6ea", stroke: "#2a9a5e", text: "#14532d" },
-  busy: { fill: "#fde7e4", stroke: "#cf3b2f", text: "#7f1d1d" },
-  paused: { fill: "#fdf1d6", stroke: "#c98410", text: "#76450b" },
-  off: { fill: "#f2f4f3", stroke: "#d3d9d6", text: "#9aa39f" },
+  free: { fill: "#ecfdf5", stroke: "#059669", text: "#065f46" },
+  busy: { fill: "#fef2f2", stroke: "#dc2626", text: "#991b1b" },
+  paused: { fill: "#fffbeb", stroke: "#d97706", text: "#92400e" },
+  off: { fill: "#f1f5f9", stroke: "#cbd5e1", text: "#94a3b8" },
 };
 
 const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -233,10 +233,10 @@ function ItemShape({
   let text: string;
 
   if (item.type === "resource") {
-    fill = item.is_active ? "#dcfce7" : "#f3f4f6";
-    stroke = item.is_active ? "#15803d" : "#9ca3af";
+    fill = item.is_active ? "#eff6ff" : "#f1f5f9";
+    stroke = item.is_active ? "#2563eb" : "#94a3b8";
     dash = item.is_active ? undefined : [10, 6];
-    textColor = item.is_active ? "#14532d" : "#6b7280";
+    textColor = item.is_active ? "#1e3a8a" : "#64748b";
     text = item.name;
     if (status) {
       ({ fill, stroke, text: textColor } = STATUS_STYLE[status.tone]);
@@ -250,7 +250,7 @@ function ItemShape({
     textColor = style.text;
     text = item.label ?? "";
   }
-  if (selected) stroke = "#1f6f56";
+  if (selected) stroke = "#2563eb";
   const strokeWidth = selected ? 4 : 2;
   const fontSize = Math.max(12, Math.min(24, Math.min(w, h) / 3));
 
@@ -273,7 +273,7 @@ function ItemShape({
           height={h}
           cornerRadius={item.type === "resource" ? 8 : 2}
           fill={fill}
-          stroke={stroke ?? (selected ? "#1f6f56" : undefined)}
+          stroke={stroke ?? (selected ? "#2563eb" : undefined)}
           strokeWidth={strokeWidth}
           dash={dash}
         />

@@ -47,7 +47,7 @@ test("журнал: скидка и отмена оплаты администр
   const checkout = panel.getByTestId("checkout");
   await checkout.getByLabel("Скидка, ₸").fill("200");
   await expect(checkout.getByTestId("receipt-total")).toHaveText("1000 ₸");
-  await checkout.getByRole("button", { name: "Закрыть" }).click();
+  await checkout.getByRole("button", { name: "Принять оплату" }).click();
   await expect(resourceButton(adminPage, "Стол 1")).toHaveAttribute(
     "data-state",
     "free",
