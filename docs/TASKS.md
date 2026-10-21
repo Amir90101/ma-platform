@@ -242,9 +242,17 @@
 
 ### 5.1 Брони в базе
 
-- [ ] Таблица `bookings`, ограничение `bookings_no_overlap`
-- [ ] RPC: `create_manual_booking`, `set_booking_status`, `get_day_bookings`
-- [ ] Задача pg_cron `mark_no_shows`
+- [x] Таблица `bookings`, ограничение `bookings_no_overlap`
+- [x] RPC: `create_manual_booking`, `set_booking_status`, `get_day_bookings`
+- [x] Задача pg_cron `mark_no_shows`
+
+**Отличия от плана:**
+
+- Отказ при пересечении приходит ошибкой `booking_overlap`, а мешающая бронь (id, время, имя гостя) лежит в `detail`. Лента 5.2 покажет её без отдельного запроса.
+- Лента дня: брони местных суток плюс ночные часы до закрытия, если заведение работает через полночь. Бронь в 01:00 видна и в рабочем дне, и в календарном.
+- `set_booking_status` переводит только `confirmed` в `cancelled` (причина обязательна) или `no_show`. `arrived` и `completed` поставят сеансы в 5.3.
+- Отмена брони пишется в журнал (`booking.cancelled`), экран журнала её показывает.
+- Добавлен внешний ключ `sessions.booking_id` → `bookings`.
 
 **Проверка:** pgTAP раздела «Брони»: пересечение отклоняется, стык при буфере 0 проходит, буфер 15 минут работает, отменённые и `no_show` не занимают стол, `mark_no_shows` и счётчик неявок верны.
 

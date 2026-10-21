@@ -15,6 +15,7 @@ const ACTIONS = [
   "session.discount",
   "session.time_edited",
   "payment.voided",
+  "booking.cancelled",
 ] as const;
 type Action = (typeof ACTIONS)[number];
 
@@ -78,6 +79,16 @@ async function Audit({
         });
       case "session.time_edited":
         return t("details.timeEdited");
+      case "booking.cancelled":
+        return t(
+          after.cancelled_by_guest
+            ? "details.bookingCancelledByGuest"
+            : "details.bookingCancelled",
+          {
+            startsAt: when.format(new Date(String(after.starts_at))),
+            reason: String(after.cancel_reason ?? ""),
+          },
+        );
     }
   }
 
