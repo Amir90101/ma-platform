@@ -81,7 +81,7 @@ my-project/
     └── e2e/
 ```
 
-Зарезервированные slug, которые нельзя занять заведению: `app`, `api`, `b`, `login`, `register`, `admin`, `settings`, `about`, `help`, `terms`, `privacy`.
+Зарезервированные slug, которые нельзя занять заведению: `app`, `api`, `b`, `login`, `register`, `admin`, `settings`, `about`, `help`, `terms`, `privacy`, а также адреса уже существующих страниц приложения: `auth`, `health`, `forgot-password`, `reset-password`. Новая страница в корне приложения — новая миграция с этим списком.
 
 ## Realtime
 

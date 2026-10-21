@@ -522,5 +522,29 @@
     },
     "arrived": "Пришёл",
     "toHall": "Открыть карту"
+  },
+  "Public": {
+    "notFoundTitle": "Заведение не найдено",
+    "notFound": "Такого заведения нет или оно ещё не открыло страницу.",
+    "loading": "Загружаем…",
+    "photoAlt": "{name}, фото {n}",
+    "onMap": "Открыть в 2ГИС",
+    "call": "Позвонить",
+    "hoursTitle": "Часы работы",
+    "dayOff": "выходной",
+    "pricesTitle": "Цены",
+    "perHour": "{price} ₸/ч",
+    "tariffWhen": "{days}, {from}–{to}",
+    "allDay": "круглосуточно",
+    "packagesTitle": "Пакеты",
+    "packageLine": "{minutes, plural, one {# минута} few {# минуты} many {# минут} other {# минуты}} — {price} ₸",
+    "rulesTitle": "Правила брони",
+    "rulePayOnSite": "Оплата на месте, предоплата не нужна.",
+    "ruleHold": "Бронь держится {minutes} мин после начала, потом стол освобождается.",
+    "ruleMinDuration": "Минимальная бронь — {minutes} мин.",
+    "ruleLead": "Онлайн бронируем не позже чем за {minutes} мин и не дальше чем на {days, plural, one {# день} few {# дня} many {# дней} other {# дня}} вперёд.",
+    "ruleCancel": "Отменить бронь можно по личной ссылке до её начала.",
+    "bookingOff": "Онлайн-бронь сейчас выключена. Позвоните, чтобы забронировать.",
+    "poweredBy": "Работает на {product}"
   }
 }
