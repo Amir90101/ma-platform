@@ -410,7 +410,7 @@
   },
   "Audit": {
     "title": "Журнал действий",
-    "hint": "Кто и когда аннулировал сеанс, правил время, давал скидку, отменял оплату. Последние 200 записей.",
+    "hint": "Кто и когда аннулировал сеанс, правил время, давал скидку, отменял оплату или бронь. Последние 200 записей.",
     "empty": "Пока ничего не произошло.",
     "author": "Кто: {who}",
     "system": "система",
@@ -418,13 +418,16 @@
       "session_voided": "Сеанс аннулирован",
       "session_discount": "Скидка",
       "session_time_edited": "Изменено время сеанса",
-      "payment_voided": "Оплата отменена"
+      "payment_voided": "Оплата отменена",
+      "booking_cancelled": "Бронь отменена"
     },
     "details": {
       "discount": "Скидка {amount} ₸, итог {total} ₸",
       "voided": "Причина: {reason}",
       "paymentVoided": "{amount} ₸, {method}. Причина: {reason}",
-      "timeEdited": "Изменено начало или конец отрезка"
+      "timeEdited": "Изменено начало или конец отрезка",
+      "bookingCancelled": "Бронь на {startsAt}. Причина: {reason}",
+      "bookingCancelledByGuest": "Бронь на {startsAt}, отменил гость"
     },
     "methods": {
       "cash": "наличные",

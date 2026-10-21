@@ -43,6 +43,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"bookings": {
+                  Row: {
+                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"manage_token": string,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "blocked_until": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id": string,"ends_at": string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id": string
+                  }
+                  Update: {
+                    "blocked_until"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"customer_id"?: string,"ends_at"?: string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"resource_id"?: string,"source"?: Database["public"]['Enums']["booking_source"],"starts_at"?: string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "bookings_customer_id_fkey"
+      columns: ["customer_id"]
+isOneToOne: false
+      referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "bookings_resource_id_fkey"
+      columns: ["resource_id"]
+isOneToOne: false
+      referencedRelation: "resources"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "bookings_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"customers": {
                   Row: {
                     "consent_at": string | null,"created_at": string,"id": string,"name": string | null,"notes": string | null,"phone": string,"venue_id": string
@@ -286,6 +318,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "sessions_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: true
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "sessions_customer_id_fkey"
       columns: ["customer_id"]
 isOneToOne: false
@@ -397,6 +435,9 @@ isOneToOne: false
 "add_session_item":
 { Args: { "p_name": string,"p_price": number,"p_qty"?: number,"p_session_id": string }; Returns: string
                            },
+"booking_conflict":
+{ Args: { "p_blocked_until": string,"p_resource_id": string,"p_starts_at": string }; Returns: Json
+                           },
 "calc_play_amount":
 { Args: { "p_at"?: string,"p_package_id"?: string,"p_segments": Json,"p_venue_id": string }; Returns: Json
                            },
@@ -443,6 +484,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"create_manual_booking":
+{ Args: { "p_comment"?: string,"p_customer_name"?: string,"p_customer_phone": string,"p_ends_at": string,"p_guests"?: number,"p_resource_id": string,"p_source"?: Database["public"]['Enums']["booking_source"],"p_starts_at": string }; Returns: string
+                           },
 "find_tariff":
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_local": string,"p_venue_id": string }; Returns: {
               "created_at": string,
@@ -463,6 +507,11 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"get_day_bookings":
+{ Args: { "p_date": string,"p_venue_id": string }; Returns: {
+              "blocked_until": string,"cancel_reason": string,"cancelled_by_guest": boolean,"comment": string,"created_at": string,"customer_id": string,"customer_name": string,"customer_phone": string,"ends_at": string,"guests": number,"id": string,"no_show_count": number,"resource_id": string,"session_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"]
+            }[]
+                           },
 "get_org_staff":
 { Args: { "p_org_id": string }; Returns: {
               "created_at": string,"email": string,"full_name": string,"role": Database["public"]['Enums']["member_role"],"user_id": string
@@ -509,6 +558,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"mark_no_shows":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
 "open_segment":
 { Args: { "p_at": string,"p_kind": Database["public"]['Enums']["segment_kind"],"p_resource_id": string,"p_session": Omit<Database["public"]['Tables']["sessions"]['Row'], Database["public"]['Tables']["sessions"]['ComputedFields']> }; Returns: undefined
                            },
@@ -529,6 +581,9 @@ isOneToOne: false
                            },
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
+                           },
+"set_booking_status":
+{ Args: { "p_booking_id": string,"p_reason"?: string,"p_status": Database["public"]['Enums']["booking_status"] }; Returns: undefined
                            },
 "start_session":
 { Args: { "p_customer_name"?: string,"p_customer_phone"?: string,"p_expected_end_at"?: string,"p_package_id"?: string,"p_resource_id": string }; Returns: string
@@ -558,7 +613,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","payment_method": "cash"|"kaspi"|"card","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","segment_kind": "play"|"pause","session_status": "active"|"paused"|"closed"|"voided","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
+            "booking_source": "online"|"phone"|"manual","booking_status": "confirmed"|"arrived"|"completed"|"cancelled"|"no_show","hall_object_kind": "bar"|"entrance"|"wall"|"label"|"zone","member_role": "owner"|"admin","payment_method": "cash"|"kaspi"|"card","resource_kind": "pool_table"|"russian_table"|"ps_zone"|"pc_seat"|"karaoke_room"|"sauna_room"|"court"|"other","segment_kind": "play"|"pause","session_status": "active"|"paused"|"closed"|"voided","venue_type": "billiards"|"ps_club"|"pc_club"|"ps_pc_club"|"karaoke"|"sauna"|"sports_court"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -678,7 +733,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"payment_method": ["cash", "kaspi", "card"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"segment_kind": ["play", "pause"],"session_status": ["active", "paused", "closed", "voided"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
+            "booking_source": ["online", "phone", "manual"],"booking_status": ["confirmed", "arrived", "completed", "cancelled", "no_show"],"hall_object_kind": ["bar", "entrance", "wall", "label", "zone"],"member_role": ["owner", "admin"],"payment_method": ["cash", "kaspi", "card"],"resource_kind": ["pool_table", "russian_table", "ps_zone", "pc_seat", "karaoke_room", "sauna_room", "court", "other"],"segment_kind": ["play", "pause"],"session_status": ["active", "paused", "closed", "voided"],"venue_type": ["billiards", "ps_club", "pc_club", "ps_pc_club", "karaoke", "sauna", "sports_court"]
           }
         }
 } as const

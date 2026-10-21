@@ -175,9 +175,9 @@
 | blocked_until | timestamptz not null | `ends_at` плюс буфер заведения на момент создания |
 | status | booking_status not null default 'confirmed' | |
 | source | booking_source not null | |
-| guests | int | |
-| comment | text | |
-| manage_token | text not null unique | Случайный токен для ссылки `/b/{token}` |
+| guests | int | 1–100 |
+| comment | text | До 500 символов |
+| manage_token | text not null unique | Случайный токен для ссылки `/b/{token}`: 18 случайных байт в hex |
 | created_by | uuid | Пользователь админки; `null` для онлайн-брони |
 | cancelled_at | timestamptz | |
 | cancelled_by_guest | boolean not null default false | |
@@ -280,7 +280,7 @@
 | after | jsonb | |
 | created_at | timestamptz not null default now() | |
 
-Запрет на `update`, `delete` и `truncate` держат триггеры, поэтому он действует и для `service_role`. Пишут функции-триггеры через `write_audit`: на `sessions` (`session.voided`, `session.discount`), на `session_segments` (`session.time_edited` — правка закрытого отрезка) и на `payments` (`payment.voided`). `booking.cancelled` добавит этап 5.
+Запрет на `update`, `delete` и `truncate` держат триггеры, поэтому он действует и для `service_role`. Пишут функции-триггеры через `write_audit`: на `sessions` (`session.voided`, `session.discount`), на `session_segments` (`session.time_edited` — правка закрытого отрезка) и на `payments` (`payment.voided`) и на `bookings` (`booking.cancelled` — с причиной и признаком отмены гостем).
 
 ## Ограничения, которые нельзя оставлять на код
 
@@ -339,9 +339,9 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `create_public_booking(...)` | Только сервер (Route Handler) | Находит или создаёт гостя, создаёт бронь `confirmed`, возвращает `manage_token` |
 | `get_booking_by_token(token)` | anon | Данные одной брони для страницы `/b/{token}` |
 | `cancel_booking_by_token(token)` | anon | Отмена гостем; только до `starts_at` |
-| `get_day_bookings(venue_id, date)` | Администратор | Брони на день с числом прошлых неявок каждого гостя |
-| `create_manual_booking(...)` | Администратор | Бронь по звонку |
-| `set_booking_status(booking_id, status, reason)` | Администратор | Отмена, неявка |
+| `get_day_bookings(venue_id, date)` | Администратор | Брони на день во всех статусах, с гостем, числом его прошлых неявок и сеансом брони. День — местные сутки, продлённые до закрытия, если заведение в этот день работает через полночь: ночная бронь видна и в своём рабочем дне, и в календарном |
+| `create_manual_booking(resource_id, starts_at, ends_at, customer_phone, customer_name?, guests?, comment?, source?)` | Администратор | Бронь по звонку (`phone`) или на месте (`manual`), сразу `confirmed`; гостя находит или создаёт по телефону, `blocked_until` = `ends_at` + `buffer_min`. Пересечение — ошибка `booking_overlap`, в `detail` мешающая бронь: `{id, starts_at, ends_at, customer_name}` |
+| `set_booking_status(booking_id, status, reason?)` | Администратор | Из `confirmed` в `cancelled` (причина обязательна) или `no_show`. Остальные переходы ставят сеансы |
 | `start_session(resource_id, expected_end_at?, package_id?, customer_phone?, customer_name?)` | Администратор | Сеанс и первый отрезок `play`; гостя находит или создаёт по телефону. Запуск по брони (бронь → `arrived`) добавит этап 5 |
 | `pause_session(session_id)` / `resume_session(session_id)` | Администратор | Закрывает текущий отрезок, открывает новый |
 | `transfer_session(session_id, resource_id)` | Администратор | Перенос на другой ресурс |
@@ -374,7 +374,7 @@ RPC для таблиц «только через RPC» объявлены `secu
 
 | Задача | Расписание | Что делает |
 | --- | --- | --- |
-| `mark_no_shows` | Каждую минуту | `confirmed`, у которых `starts_at + no_show_after_min` прошло, а сеанса нет → `no_show` |
+| `mark_no_shows` | Каждую минуту | `confirmed`, у которых `starts_at + no_show_after_min` прошло, а сеанса нет → `no_show`. Функция `mark_no_shows()` вызывается только из pg_cron, `authenticated` её не вызывает |
 
 ## Storage
 
