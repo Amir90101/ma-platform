@@ -537,6 +537,9 @@ isOneToOne: false
 "get_public_venue":
 { Args: { "p_slug": string }; Returns: Json
                            },
+"get_revenue_report":
+{ Args: { "p_from": string,"p_to": string,"p_venue_id": string }; Returns: Json
+                           },
 "hall_venue_id":
 { Args: { "p_hall_id": string }; Returns: string
                            },

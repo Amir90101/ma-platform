@@ -82,6 +82,12 @@ async function VenueHome({
               {t("home.staff")}
             </Link>
             <Link
+              href={`/app/${venue.id}/reports`}
+              className={buttonVariants({ variant: "outline" })}
+            >
+              {t("home.reports")}
+            </Link>
+            <Link
               href={`/app/${venue.id}/audit`}
               className={buttonVariants({ variant: "outline" })}
             >
@@ -90,7 +96,6 @@ async function VenueHome({
           </>
         )}
       </nav>
-      <p className="text-muted-foreground">{t("home.workScreensLater")}</p>
     </>
   );
 }

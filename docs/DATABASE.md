@@ -358,6 +358,7 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `add_payment(session_id, amount, method)` / `void_payment(payment_id, reason)` | Администратор | Оплата и её отмена; оплате нужна открытая смена. Закрытый сеанс нельзя переплатить; отмена требует причину |
 | `open_shift(venue_id, opening_cash)` / `close_shift(shift_id, closing_cash)` | Администратор | Смена; при закрытии считает `expected_cash` |
 | `add_session_item(session_id, name, price, qty)` / `remove_session_item(item_id)` | Администратор | Товары в счёте открытого сеанса |
+| `get_revenue_report(venue_id, from, to)` | Владелец | Выручка за период до года: неотменённые оплаты по рабочему дню смены (местная дата открытия смены), по способам оплаты, по дням (все дни периода, нулевые тоже) и по ресурсам. Оплата сеанса относится к ресурсу, где сеанс шёл дольше всего. Ошибки: `venue_not_found`, `period_invalid` |
 | `checkout_session(session_id, discount, payments)` | Администратор | `close_session` и оплаты одной транзакцией; сумма оплат равна итогу, для оплаты нужна открытая смена |
 
 ### Как считает `calc_session_amount`
