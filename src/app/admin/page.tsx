@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Link from "next/link";
 import { Check, ExternalLink, Plus, Store } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -18,6 +19,19 @@ const STEPS = ["hours", "resources", "tariffs", "photos", "staff"] as const;
 export default async function PlatformPage({
   searchParams,
 }: PageProps<"/admin">) {
+  const t = await getTranslations("Platform");
+  return (
+    <Suspense
+      fallback={<p className="text-muted-foreground">{t("loading")}</p>}
+    >
+      <PlatformVenues searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function PlatformVenues({
+  searchParams,
+}: Pick<PageProps<"/admin">, "searchParams">) {
   const t = await getTranslations("Platform");
   const tVenue = await getTranslations("Venue");
   const { created } = await searchParams;

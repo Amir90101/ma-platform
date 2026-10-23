@@ -13,8 +13,12 @@ export const NAV_PATHS: Record<NavKey, string> = {
 };
 
 // Администратору — рабочие экраны, владельцу — ещё отчёты, журнал, настройки.
-export function navItems(isOwner: boolean): NavKey[] {
-  return isOwner
+// Заведение «только онлайн-бронь» (касса в iiko): без карты сеансов и отчётов.
+export function navItems(isOwner: boolean, bookingOnly = false): NavKey[] {
+  const items: NavKey[] = isOwner
     ? ["overview", "hall", "bookings", "reports", "audit", "settings"]
     : ["overview", "hall", "bookings"];
+  return bookingOnly
+    ? items.filter((k) => k !== "hall" && k !== "reports")
+    : items;
 }

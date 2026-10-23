@@ -34,10 +34,13 @@ async function VenueShell({
   const tCommon = await getTranslations("Common");
   const tVenue = await getTranslations("Venue");
   // Нет доступа — страница сама покажет «не найдено», навигации нет.
-  const items = access ? navItems(access.isOwner) : [];
+  const items = access
+    ? navItems(access.isOwner, access.venue.booking_only)
+    : [];
   // Сотрудник работает только в открытой смене: вход открывает её, выход —
   // закрывает (этап 9.3). Владельца это не касается.
-  const staff = access && !access.isOwner;
+  // Заведение «только онлайн-бронь» смен не ведёт: касса в iiko.
+  const staff = access && !access.isOwner && !access.venue.booking_only;
   const { data: shift } = staff
     ? await access.supabase
         .from("shifts")

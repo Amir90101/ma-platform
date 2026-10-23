@@ -12,6 +12,7 @@ const TABS = [
   ["/booking", "booking"],
   ["/staff", "staff"],
   ["/notifications", "notifications"],
+  ["/integration", "integration"],
 ] as const;
 
 // Вкладки настроек заведения. На телефоне листаются по горизонтали.

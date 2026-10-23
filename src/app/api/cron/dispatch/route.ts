@@ -1,12 +1,13 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getTranslations } from "next-intl/server";
+import { dispatchIiko } from "@/lib/iiko/venue";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createTelegramApi, telegramConfigured } from "@/lib/telegram/api";
 import { dispatchTelegram } from "@/lib/telegram/dispatch";
 
 // Фоновые отправки: будит pg_cron раз в минуту (cron_dispatch_ping) с
-// секретом из Vault. Сейчас — Telegram.
+// секретом из Vault: Telegram и брони в iiko.
 export async function POST(request: Request) {
   const secret = process.env.CRON_SECRET ?? "";
   const given = request.headers.get("authorization")?.replace(/^Bearer /, "");
@@ -28,5 +29,6 @@ export async function POST(request: Request) {
       t: (key, values) => t(key as never, values as never),
     });
   }
-  return NextResponse.json({ ok: true, telegram });
+  const iiko = await dispatchIiko(db);
+  return NextResponse.json({ ok: true, telegram, iiko });
 }

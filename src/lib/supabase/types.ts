@@ -45,14 +45,14 @@ isOneToOne: false
                   ]
                 },"bookings": {
                   Row: {
-                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"created_ip": unknown,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"manage_token": string,"package_id": string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string,"booking_notification_payload": Json | null
+                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"created_ip": unknown,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"iiko_error": string | null,"iiko_status": string | null,"manage_token": string,"package_id": string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string,"booking_notification_payload": Json | null
                   }
                   ComputedFields: "booking_notification_payload"
                   Insert: {
-                    "blocked_until": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id": string,"ends_at": string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"package_id"?: string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id": string
+                    "blocked_until": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id": string,"ends_at": string,"guests"?: number | null,"id"?: string,"iiko_error"?: string | null,"iiko_status"?: string | null,"manage_token"?: string,"package_id"?: string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id": string
                   }
                   Update: {
-                    "blocked_until"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id"?: string,"ends_at"?: string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"package_id"?: string | null,"resource_id"?: string,"source"?: Database["public"]['Enums']["booking_source"],"starts_at"?: string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id"?: string
+                    "blocked_until"?: string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id"?: string,"ends_at"?: string,"guests"?: number | null,"id"?: string,"iiko_error"?: string | null,"iiko_status"?: string | null,"manage_token"?: string,"package_id"?: string | null,"resource_id"?: string,"source"?: Database["public"]['Enums']["booking_source"],"starts_at"?: string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id"?: string
                   }
                   Relationships: [
                     {
@@ -135,6 +135,32 @@ isOneToOne: false
                   Relationships: [
                     {
       foreignKeyName: "halls_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"integration_outbox": {
+                  Row: {
+                    "action": string,"attempts": number,"booking_id": string,"claimed_at": string | null,"created_at": string,"done_at": string | null,"id": number,"last_error": string | null,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "action": string,"attempts"?: number,"booking_id": string,"claimed_at"?: string | null,"created_at"?: string,"done_at"?: string | null,"id"?: never,"last_error"?: string | null,"venue_id": string
+                  }
+                  Update: {
+                    "action"?: string,"attempts"?: number,"booking_id"?: string,"claimed_at"?: string | null,"created_at"?: string,"done_at"?: string | null,"id"?: never,"last_error"?: string | null,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "integration_outbox_booking_id_fkey"
+      columns: ["booking_id"]
+isOneToOne: false
+      referencedRelation: "bookings"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "integration_outbox_venue_id_fkey"
       columns: ["venue_id"]
 isOneToOne: false
       referencedRelation: "venues"
@@ -263,14 +289,14 @@ isOneToOne: false
                   ]
                 },"resources": {
                   Row: {
-                    "bookable_online": boolean,"capacity": number | null,"created_at": string,"h": number,"hall_id": string,"id": string,"is_active": boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation": number,"shape": string,"venue_id": string,"w": number,"x": number,"y": number
+                    "bookable_online": boolean,"capacity": number | null,"created_at": string,"h": number,"hall_id": string,"id": string,"iiko_table_id": string | null,"is_active": boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation": number,"shape": string,"venue_id": string,"w": number,"x": number,"y": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "bookable_online"?: boolean,"capacity"?: number | null,"created_at"?: string,"h": number,"hall_id": string,"id"?: string,"is_active"?: boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation"?: number,"shape"?: string,"venue_id": string,"w": number,"x": number,"y": number
+                    "bookable_online"?: boolean,"capacity"?: number | null,"created_at"?: string,"h": number,"hall_id": string,"id"?: string,"iiko_table_id"?: string | null,"is_active"?: boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation"?: number,"shape"?: string,"venue_id": string,"w": number,"x": number,"y": number
                   }
                   Update: {
-                    "bookable_online"?: boolean,"capacity"?: number | null,"created_at"?: string,"h"?: number,"hall_id"?: string,"id"?: string,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["resource_kind"],"name"?: string,"rotation"?: number,"shape"?: string,"venue_id"?: string,"w"?: number,"x"?: number,"y"?: number
+                    "bookable_online"?: boolean,"capacity"?: number | null,"created_at"?: string,"h"?: number,"hall_id"?: string,"id"?: string,"iiko_table_id"?: string | null,"is_active"?: boolean,"kind"?: Database["public"]['Enums']["resource_kind"],"name"?: string,"rotation"?: number,"shape"?: string,"venue_id"?: string,"w"?: number,"x"?: number,"y"?: number
                   }
                   Relationships: [
                     {
@@ -477,6 +503,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"venue_integrations": {
+                  Row: {
+                    "api_login_secret_id": string | null,"enabled": boolean,"last_error": string | null,"organization_id": string | null,"provider": string,"section_ids": (string)[],"synced_at": string | null,"terminal_group_id": string | null,"updated_at": string,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "api_login_secret_id"?: string | null,"enabled"?: boolean,"last_error"?: string | null,"organization_id"?: string | null,"provider"?: string,"section_ids"?: (string)[],"synced_at"?: string | null,"terminal_group_id"?: string | null,"updated_at"?: string,"venue_id": string
+                  }
+                  Update: {
+                    "api_login_secret_id"?: string | null,"enabled"?: boolean,"last_error"?: string | null,"organization_id"?: string | null,"provider"?: string,"section_ids"?: (string)[],"synced_at"?: string | null,"terminal_group_id"?: string | null,"updated_at"?: string,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "venue_integrations_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: true
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"venue_photos": {
                   Row: {
                     "created_at": string,"id": string,"sort": number,"storage_path": string,"venue_id": string
@@ -499,14 +545,14 @@ isOneToOne: false
                   ]
                 },"venues": {
                   Row: {
-                    "address": string | null,"buffer_min": number,"city": string,"created_at": string,"description": string | null,"id": string,"is_published": boolean,"max_days_ahead": number,"min_duration_min": number,"min_lead_min": number,"name": string,"no_show_after_min": number,"online_booking_enabled": boolean,"org_id": string,"phone": string | null,"rounding_min": number,"slot_step_min": number,"slug": string,"timezone": string,"type": Database["public"]['Enums']["venue_type"],"working_hours": NonNullable<Json>
+                    "address": string | null,"booking_only": boolean,"buffer_min": number,"city": string,"created_at": string,"description": string | null,"id": string,"is_published": boolean,"max_days_ahead": number,"min_duration_min": number,"min_lead_min": number,"name": string,"no_show_after_min": number,"online_booking_enabled": boolean,"org_id": string,"phone": string | null,"rounding_min": number,"slot_step_min": number,"slug": string,"timezone": string,"type": Database["public"]['Enums']["venue_type"],"working_hours": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"buffer_min"?: number,"city": string,"created_at"?: string,"description"?: string | null,"id"?: string,"is_published"?: boolean,"max_days_ahead"?: number,"min_duration_min"?: number,"min_lead_min"?: number,"name": string,"no_show_after_min"?: number,"online_booking_enabled"?: boolean,"org_id": string,"phone"?: string | null,"rounding_min"?: number,"slot_step_min"?: number,"slug": string,"timezone"?: string,"type": Database["public"]['Enums']["venue_type"],"working_hours"?: NonNullable<Json>
+                    "address"?: string | null,"booking_only"?: boolean,"buffer_min"?: number,"city": string,"created_at"?: string,"description"?: string | null,"id"?: string,"is_published"?: boolean,"max_days_ahead"?: number,"min_duration_min"?: number,"min_lead_min"?: number,"name": string,"no_show_after_min"?: number,"online_booking_enabled"?: boolean,"org_id": string,"phone"?: string | null,"rounding_min"?: number,"slot_step_min"?: number,"slug": string,"timezone"?: string,"type": Database["public"]['Enums']["venue_type"],"working_hours"?: NonNullable<Json>
                   }
                   Update: {
-                    "address"?: string | null,"buffer_min"?: number,"city"?: string,"created_at"?: string,"description"?: string | null,"id"?: string,"is_published"?: boolean,"max_days_ahead"?: number,"min_duration_min"?: number,"min_lead_min"?: number,"name"?: string,"no_show_after_min"?: number,"online_booking_enabled"?: boolean,"org_id"?: string,"phone"?: string | null,"rounding_min"?: number,"slot_step_min"?: number,"slug"?: string,"timezone"?: string,"type"?: Database["public"]['Enums']["venue_type"],"working_hours"?: NonNullable<Json>
+                    "address"?: string | null,"booking_only"?: boolean,"buffer_min"?: number,"city"?: string,"created_at"?: string,"description"?: string | null,"id"?: string,"is_published"?: boolean,"max_days_ahead"?: number,"min_duration_min"?: number,"min_lead_min"?: number,"name"?: string,"no_show_after_min"?: number,"online_booking_enabled"?: boolean,"org_id"?: string,"phone"?: string | null,"rounding_min"?: number,"slot_step_min"?: number,"slug"?: string,"timezone"?: string,"type"?: Database["public"]['Enums']["venue_type"],"working_hours"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -652,6 +698,27 @@ isOneToOne: false
 "hall_venue_id":
 { Args: { "p_hall_id": string }; Returns: string
                            },
+"iiko_api_login":
+{ Args: { "p_venue_id": string }; Returns: string
+                           },
+"iiko_claim_outbox":
+{ Args: { "p_limit": number }; Returns: {
+              "action": string,
+"attempts": number,
+"booking_id": string,
+"claimed_at": string | null,
+"created_at": string,
+"done_at": string | null,
+"id": number,
+"last_error": string | null,
+"venue_id": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "integration_outbox"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "is_org_member":
 { Args: { "p_org_id": string }; Returns: boolean
                            },
@@ -728,14 +795,23 @@ isOneToOne: false
 "save_hall_layout":
 { Args: { "p_hall_id": string,"p_objects": Json,"p_resources": Json }; Returns: undefined
                            },
+"save_iiko_settings":
+{ Args: { "p_enabled": boolean,"p_organization_id": string,"p_section_ids": (string)[],"p_terminal_group_id": string,"p_venue_id": string }; Returns: undefined
+                           },
 "server_now":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
 "set_booking_status":
 { Args: { "p_booking_id": string,"p_reason"?: string,"p_status": Database["public"]['Enums']["booking_status"] }; Returns: undefined
                            },
+"set_iiko_api_login":
+{ Args: { "p_api_login": string,"p_venue_id": string }; Returns: undefined
+                           },
 "start_session":
 { Args: { "p_customer_name"?: string,"p_customer_phone"?: string,"p_expected_end_at"?: string,"p_package_id"?: string,"p_resource_id": string }; Returns: string
+                           },
+"sync_iiko_tables":
+{ Args: { "p_tables": Json,"p_venue_id": string }; Returns: number
                            },
 "tariff_week_grid":
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_venue_id": string }; Returns: {

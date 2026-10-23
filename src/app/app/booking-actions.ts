@@ -1,7 +1,10 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { after } from "next/server";
 import type { PostgrestError } from "@supabase/supabase-js";
+import { dispatchIiko, freeInIikoNow } from "@/lib/iiko/venue";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   manualBookingFromForm,
@@ -104,6 +107,18 @@ export async function createManualBooking(
     ends = new Date(startsAt.getTime() + pkg.minutes * 60_000);
   }
 
+  // Заведение с iiko: стол может быть занят бронью в кассе (этап 9.5).
+  if (
+    !(await freeInIikoNow(
+      venueId,
+      v.resource_id,
+      startsAt,
+      Math.round((ends.getTime() - startsAt.getTime()) / 60_000),
+    ))
+  ) {
+    return { ok: false, error: "iiko_busy" };
+  }
+
   const { error } = await supabase.rpc("create_manual_booking", {
     p_resource_id: v.resource_id,
     p_starts_at: startsAt.toISOString(),
@@ -115,6 +130,7 @@ export async function createManualBooking(
     p_comment: v.comment || undefined,
   });
   if (error) return failure(error);
+  after(() => dispatchIiko(createAdminClient()));
   refresh();
   return { ok: true };
 }

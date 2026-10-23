@@ -9,7 +9,7 @@ export const getVenueAccess = cache(async (venueId: string) => {
   const supabase = await createClient();
   const { data: venue } = await supabase
     .from("venues")
-    .select("id, org_id, name, type")
+    .select("id, org_id, name, type, booking_only")
     .eq("id", venueId)
     .maybeSingle();
   if (!venue) return null;
