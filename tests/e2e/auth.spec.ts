@@ -23,7 +23,7 @@ test("неверный пароль показывает ошибку и не п
   await page.goto("/login");
   await login(page, OWNER.email, "wrong-password");
   await expect(page.locator("form").getByRole("alert")).toHaveText(
-    "Неверный email или пароль",
+    "Неверный логин, email или пароль",
   );
   await expect(page).toHaveURL(/\/login/);
 });
@@ -86,7 +86,7 @@ test("сброс пароля по ссылке из письма", async ({ pag
   await page.getByRole("button", { name: "Выйти" }).click();
   await login(page, email, OWNER_PASSWORD);
   await expect(page.locator("form").getByRole("alert")).toHaveText(
-    "Неверный email или пароль",
+    "Неверный логин, email или пароль",
   );
   await login(page, email, "new-password-1");
   await expect(page).toHaveURL("/app");

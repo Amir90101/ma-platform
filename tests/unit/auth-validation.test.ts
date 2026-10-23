@@ -4,6 +4,7 @@ import {
   loginSchema,
   resetPasswordSchema,
   safeNextPath,
+  staffSchema,
 } from "@/lib/validation/auth";
 
 describe("loginSchema", () => {
@@ -16,12 +17,46 @@ describe("loginSchema", () => {
   });
 
   it("отклоняет неверный email и пустой пароль", () => {
-    const r = loginSchema.safeParse({ email: "owner", password: "" });
+    const r = loginSchema.safeParse({ email: "owner@", password: "" });
     expect(r.success).toBe(false);
     expect(fieldErrors(r.error!)).toEqual({
-      email: "emailInvalid",
+      email: "emailOrLoginInvalid",
       password: "passwordRequired",
     });
+  });
+
+  it("логин сотрудника превращается в служебный адрес", () => {
+    const r = loginSchema.parse({ email: " Aigerim.K ", password: "x" });
+    expect(r.email).toBe("aigerim.k@staff.local");
+  });
+
+  it("логин с пробелом или короче трёх символов не принимается", () => {
+    for (const email of ["ai", "ai gerim", "-aigerim"]) {
+      const r = loginSchema.safeParse({ email, password: "x" });
+      expect(fieldErrors(r.error!)).toEqual({ email: "emailOrLoginInvalid" });
+    }
+  });
+});
+
+describe("staffSchema", () => {
+  it("логин латиницей, пароль от 8 символов, имя обязательно", () => {
+    const r = staffSchema.safeParse({
+      fullName: " ",
+      login: "Айгерим",
+      password: "1234567",
+    });
+    expect(fieldErrors(r.error!)).toEqual({
+      fullName: "nameRequired",
+      login: "loginFormat",
+      password: "passwordTooShort",
+    });
+    expect(
+      staffSchema.parse({
+        fullName: "Айгерим",
+        login: " Aigerim ",
+        password: "12345678",
+      }).login,
+    ).toBe("aigerim");
   });
 });
 

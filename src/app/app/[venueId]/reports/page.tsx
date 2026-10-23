@@ -14,7 +14,9 @@ import {
   type RevenueReport,
 } from "@/lib/reports";
 import { getVenueAccess } from "@/lib/venue-access";
-import { todayIn } from "@/lib/venue-time";
+import { staffLogin } from "@/lib/staff-login";
+import { cn } from "@/lib/utils";
+import { addDays, todayIn, zonedToUtc } from "@/lib/venue-time";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("Reports");
@@ -295,7 +297,144 @@ async function Reports({
       )}
 
       {load && <LoadSection load={load} dayLabel={dayLabel} />}
+
+      <ShiftsSection
+        venueId={venue.id}
+        orgId={venue.org_id}
+        timezone={venueRow?.timezone ?? "Asia/Almaty"}
+        from={from}
+        to={to}
+      />
     </>
+  );
+}
+
+// Смены за период: кто открыл и закрыл, сколько наличных ожидалось и сколько
+// пересчитали. Недостача — красным (этап 9.3).
+async function ShiftsSection({
+  venueId,
+  orgId,
+  timezone,
+  from,
+  to,
+}: {
+  venueId: string;
+  orgId: string;
+  timezone: string;
+  from: string;
+  to: string;
+}) {
+  const t = await getTranslations("Reports");
+  const access = await getVenueAccess(venueId);
+  if (!access) return null;
+  const { supabase } = access;
+  const [{ data: shifts }, { data: staff }] = await Promise.all([
+    supabase
+      .from("shifts")
+      .select(
+        "id, opened_at, opened_by, closed_at, closed_by, opening_cash, expected_cash, closing_cash",
+      )
+      .eq("venue_id", venueId)
+      .gte("opened_at", zonedToUtc(from, "00:00", timezone).toISOString())
+      .lt(
+        "opened_at",
+        zonedToUtc(addDays(to, 1), "00:00", timezone).toISOString(),
+      )
+      .order("opened_at", { ascending: false })
+      .limit(200),
+    supabase.rpc("get_org_staff", { p_org_id: orgId }),
+  ]);
+  const names = new Map(
+    (staff ?? []).map((m) => [
+      m.user_id,
+      m.full_name || staffLogin(m.email) || m.email,
+    ]),
+  );
+  const who = (id: string | null) => (id ? (names.get(id) ?? "—") : "—");
+  const when = (iso: string) =>
+    new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: timezone,
+    }).format(new Date(iso));
+  const money = (amount: number) =>
+    t("money", { amount: amount.toLocaleString("ru-RU") });
+
+  return (
+    <section className="grid gap-3" data-testid="shifts-report">
+      <h2 className="text-xl font-bold">{t("shiftsTitle")}</h2>
+      <p className="text-muted-foreground text-sm">{t("shiftsHint")}</p>
+      {!shifts?.length ? (
+        <p className="text-muted-foreground">{t("noShifts")}</p>
+      ) : (
+        <div className="bg-card shadow-card overflow-x-auto rounded-2xl">
+          <table className="w-full min-w-2xl text-sm [&_td]:px-4 [&_td]:py-2 [&_th]:px-4 [&_th]:pt-4 [&_th]:pb-2">
+            <thead className="text-muted-foreground text-left">
+              <tr>
+                <th className="font-normal">{t("shiftOpened")}</th>
+                <th className="font-normal">{t("shiftClosed")}</th>
+                <th className="text-right font-normal">{t("shiftExpected")}</th>
+                <th className="text-right font-normal">{t("shiftCounted")}</th>
+                <th className="text-right font-normal">{t("shiftDiff")}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y">
+              {shifts.map((s) => {
+                const diff =
+                  s.closing_cash !== null && s.expected_cash !== null
+                    ? s.closing_cash - s.expected_cash
+                    : null;
+                return (
+                  <tr key={s.id} data-testid="shift-row">
+                    <td>
+                      <span className="block font-medium">
+                        {when(s.opened_at)}
+                      </span>
+                      <span className="text-muted-foreground">
+                        {who(s.opened_by)}
+                      </span>
+                    </td>
+                    <td>
+                      {s.closed_at ? (
+                        <>
+                          <span className="block font-medium">
+                            {when(s.closed_at)}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {who(s.closed_by)}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-status-free font-medium">
+                          {t("shiftOpenNow")}
+                        </span>
+                      )}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {s.expected_cash !== null ? money(s.expected_cash) : "—"}
+                    </td>
+                    <td className="text-right tabular-nums">
+                      {s.closing_cash !== null ? money(s.closing_cash) : "—"}
+                    </td>
+                    <td
+                      className={cn(
+                        "text-right font-semibold tabular-nums",
+                        diff !== null && diff < 0 && "text-destructive",
+                        diff !== null && diff > 0 && "text-status-free",
+                      )}
+                    >
+                      {diff !== null ? money(diff) : "—"}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

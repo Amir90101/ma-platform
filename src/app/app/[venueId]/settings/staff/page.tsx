@@ -2,8 +2,13 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/app-shell/page-header";
-import { inviteAdmin, removeAdmin } from "@/app/app/staff-actions";
-import { InviteForm } from "@/components/staff/invite-form";
+import {
+  createStaff,
+  removeAdmin,
+  setStaffPassword,
+} from "@/app/app/staff-actions";
+import { StaffForm, StaffPasswordForm } from "@/components/staff/staff-form";
+import { staffLogin } from "@/lib/staff-login";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getVenueAccess } from "@/lib/venue-access";
@@ -46,8 +51,13 @@ async function Staff({
       <PageHeader title={t("title")} description={t("hint")} />
 
       <Card>
+        <CardHeader>
+          <CardTitle>
+            <h2>{t("newTitle")}</h2>
+          </CardTitle>
+        </CardHeader>
         <CardContent>
-          <InviteForm action={inviteAdmin.bind(null, venue.id)} />
+          <StaffForm action={createStaff.bind(null, venue.id)} />
         </CardContent>
       </Card>
 
@@ -59,34 +69,52 @@ async function Staff({
         </CardHeader>
         <CardContent>
           <ul className="divide-y" data-testid="staff-list">
-            {(staff ?? []).map((member) => (
-              <li
-                key={member.user_id}
-                className="flex items-center justify-between gap-4 py-3"
-              >
-                <span className="min-w-0">
-                  <span className="block truncate">{member.email}</span>
-                  <span className="text-muted-foreground text-sm">
-                    {member.full_name ? `${member.full_name} · ` : ""}
-                    {t(`roles.${member.role}`)}
+            {(staff ?? []).map((member) => {
+              const login = staffLogin(member.email);
+              return (
+                <li
+                  key={member.user_id}
+                  className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2 py-3"
+                >
+                  <span className="grid min-w-0 gap-0.5">
+                    <span className="truncate font-medium">
+                      {member.full_name || member.email}
+                    </span>
+                    <span className="text-muted-foreground text-sm">
+                      {login ? t("loginLabel", { login }) : member.email}
+                      {" · "}
+                      {t(`roles.${member.role}`)}
+                    </span>
+                    {login && (
+                      <StaffPasswordForm
+                        action={setStaffPassword.bind(
+                          null,
+                          venue.id,
+                          member.user_id,
+                        )}
+                        login={login}
+                      />
+                    )}
                   </span>
-                </span>
-                {member.role === "admin" && (
-                  <form
-                    action={removeAdmin.bind(null, venue.id, member.user_id)}
-                  >
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="sm"
-                      aria-label={t("removeLabel", { email: member.email })}
+                  {member.role === "admin" && (
+                    <form
+                      action={removeAdmin.bind(null, venue.id, member.user_id)}
                     >
-                      {t("remove")}
-                    </Button>
-                  </form>
-                )}
-              </li>
-            ))}
+                      <Button
+                        type="submit"
+                        variant="outline"
+                        size="sm"
+                        aria-label={t("removeLabel", {
+                          email: login ?? member.email,
+                        })}
+                      >
+                        {t("remove")}
+                      </Button>
+                    </form>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </CardContent>
       </Card>

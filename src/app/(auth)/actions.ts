@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { AuthError } from "@supabase/supabase-js";
 import { siteUrl } from "@/lib/site-url";
@@ -20,6 +21,8 @@ export type AuthFormState = {
   // Введённые значения без паролей: React очищает форму после отправки.
   values?: { email?: string; fullName?: string };
   done?: boolean;
+  // Вход удался: форма открывает адрес полной загрузкой страницы.
+  redirectTo?: string;
 };
 
 function authErrorKey(error: AuthError): string {
@@ -66,7 +69,10 @@ export async function login(
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) return { error: authErrorKey(error), values };
 
-  redirect(safeNextPath(formData.get("next")));
+  // На планшете клуба сотрудники сменяют друг друга: после входа страница
+  // грузится заново, кэш маршрутов прошлого пользователя не используется.
+  revalidatePath("/", "layout");
+  return { redirectTo: safeNextPath(formData.get("next")) };
 }
 
 export async function forgotPassword(
@@ -119,5 +125,6 @@ export async function resetPassword(
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  revalidatePath("/", "layout");
   redirect("/login");
 }

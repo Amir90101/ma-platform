@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { type AuthFormState, login } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
@@ -18,14 +18,18 @@ export function LoginForm() {
     },
   );
 
+  useEffect(() => {
+    if (state.redirectTo) window.location.assign(state.redirectTo);
+  }, [state.redirectTo]);
+
   return (
     <form action={formAction} className="grid gap-4" noValidate>
       <input type="hidden" name="next" value={searchParams.get("next") ?? ""} />
       <FormField
         name="email"
-        type="email"
-        label={t("email")}
-        autoComplete="email"
+        type="text"
+        label={t("emailOrLogin")}
+        autoComplete="username"
         defaultValue={state.values?.email}
         error={state.fieldErrors?.email}
         required
@@ -39,7 +43,7 @@ export function LoginForm() {
         required
       />
       <FormError error={state.error} />
-      <Button type="submit" size="lg" disabled={pending}>
+      <Button type="submit" size="lg" disabled={pending || !!state.redirectTo}>
         {pending ? t("loggingIn") : t("loginSubmit")}
       </Button>
       <div className="flex justify-between text-sm">
