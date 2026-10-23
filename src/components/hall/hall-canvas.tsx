@@ -24,35 +24,76 @@ import type { EditorItem } from "./hall-editor";
 type HallSize = { width: number; height: number };
 
 // Статус стола на рабочем экране и вторая строка подписи (таймер).
-// off — на публичной странице: на выбранное время стол не забронировать.
+// off — на публичной странице: на выбранное время стол не забронировать;
+// picked — место, которое выбрал гость.
 export type ItemStatus = {
-  tone: "free" | "busy" | "paused" | "off";
+  tone: "free" | "busy" | "paused" | "off" | "picked";
   caption?: string;
 };
 
-const STATUS_STYLE: Record<
-  ItemStatus["tone"],
-  { fill: string; stroke: string; text: string }
-> = {
-  // Те же оттенки, что токены --status-* в globals.css.
-  free: { fill: "#ecfdf5", stroke: "#059669", text: "#065f46" },
-  busy: { fill: "#fef2f2", stroke: "#dc2626", text: "#991b1b" },
-  paused: { fill: "#fffbeb", stroke: "#d97706", text: "#92400e" },
-  off: { fill: "#f1f5f9", stroke: "#cbd5e1", text: "#94a3b8" },
+type Palette = {
+  bg: string;
+  grid: string;
+  resource: { fill: string; stroke: string; text: string };
+  inactive: { fill: string; stroke: string; text: string };
+  selected: string;
+  status: Record<
+    ItemStatus["tone"],
+    { fill: string; stroke: string; text: string }
+  >;
+  objects: Record<
+    string,
+    { fill?: string; stroke?: string; dash?: number[]; text: string }
+  >;
+};
+
+// Те же оттенки, что токены --status-* в globals.css: светлая тема —
+// админка, тёмная — публичная страница.
+const LIGHT: Palette = {
+  bg: "#ffffff",
+  grid: "#f0f0f2",
+  resource: { fill: "#ffffff", stroke: "#66666e", text: "#151515" },
+  inactive: { fill: "#f4f4f5", stroke: "#a2a3a5", text: "#66666e" },
+  selected: "#151515",
+  status: {
+    free: { fill: "#e9f6ee", stroke: "#15803d", text: "#14532d" },
+    busy: { fill: "#fdecee", stroke: "#e0182d", text: "#9f1239" },
+    paused: { fill: "#fff4e0", stroke: "#b45309", text: "#78350f" },
+    off: { fill: "#f4f4f5", stroke: "#d4d4da", text: "#9a9aa2" },
+    picked: { fill: "#e0182d", stroke: "#b01f2d", text: "#ffffff" },
+  },
+  objects: {
+    bar: { fill: "#fff4e0", stroke: "#b45309", text: "#78350f" },
+    entrance: { fill: "#ebf1fb", stroke: "#3d6fc9", text: "#1e3a8a" },
+    wall: { fill: "#3d3d3d", text: "#f5f5f5" },
+    zone: { stroke: "#7c3aed", dash: [12, 8], text: "#5b21b6" },
+    label: { text: "#151515" },
+  },
+};
+
+const DARK: Palette = {
+  bg: "#1b1b1b",
+  grid: "#242424",
+  resource: { fill: "#262626", stroke: "#5a5a5a", text: "#f5f5f5" },
+  inactive: { fill: "#222222", stroke: "#3d3d3d", text: "#6b6b6b" },
+  selected: "#ffffff",
+  status: {
+    free: { fill: "#15301f", stroke: "#34c46a", text: "#d1fadf" },
+    busy: { fill: "#3a1b1f", stroke: "#ff5c69", text: "#ff9aa3" },
+    paused: { fill: "#3a2a10", stroke: "#f5a524", text: "#f5d08a" },
+    off: { fill: "#2a2a2a", stroke: "#3d3d3d", text: "#6b6b6b" },
+    picked: { fill: "#e0182d", stroke: "#ff9aa3", text: "#ffffff" },
+  },
+  objects: {
+    bar: { fill: "#3a2a10", stroke: "#f5a524", text: "#f5d08a" },
+    entrance: { fill: "#1a2640", stroke: "#7aa2e8", text: "#cfe0ff" },
+    wall: { fill: "#4a4a4a", text: "#f5f5f5" },
+    zone: { stroke: "#a78bfa", dash: [12, 8], text: "#c4b5fd" },
+    label: { text: "#f5f5f5" },
+  },
 };
 
 const ROTATION_SNAPS = [0, 45, 90, 135, 180, 225, 270, 315];
-
-const OBJECT_STYLE: Record<
-  string,
-  { fill?: string; stroke?: string; dash?: number[]; text: string }
-> = {
-  bar: { fill: "#fde68a", stroke: "#b45309", text: "#78350f" },
-  entrance: { fill: "#bfdbfe", stroke: "#1d4ed8", text: "#1e3a8a" },
-  wall: { fill: "#4b5563", text: "#f9fafb" },
-  zone: { stroke: "#7c3aed", dash: [12, 8], text: "#5b21b6" },
-  label: { text: "#111827" },
-};
 
 // Холст Konva. Размер зала в условных единицах, холст масштабируется
 // под ширину контейнера. Только для браузера: грузится через dynamic(ssr: false).
@@ -62,6 +103,7 @@ export default function HallCanvas({
   selectedKey,
   editable,
   statuses,
+  dark = false,
   onSelect,
   onChange,
 }: {
@@ -70,6 +112,7 @@ export default function HallCanvas({
   selectedKey: string | null;
   editable: boolean;
   statuses?: Record<string, ItemStatus>;
+  dark?: boolean;
   onSelect: (key: string | null) => void;
   onChange: (key: string, patch: Partial<Box & { rotation: number }>) => void;
 }) {
@@ -94,16 +137,25 @@ export default function HallCanvas({
     transformer.current?.getLayer()?.batchDraw();
   }, [selectedKey, items, editable]);
 
+  const palette = dark ? DARK : LIGHT;
   const scale = width / hall.width;
   const gridLines = [];
   for (let x = 50; x < hall.width; x += 50) {
     gridLines.push(
-      <Line key={`v${x}`} points={[x, 0, x, hall.height]} stroke="#eef0f3" />,
+      <Line
+        key={`v${x}`}
+        points={[x, 0, x, hall.height]}
+        stroke={palette.grid}
+      />,
     );
   }
   for (let y = 50; y < hall.height; y += 50) {
     gridLines.push(
-      <Line key={`h${y}`} points={[0, y, hall.width, y]} stroke="#eef0f3" />,
+      <Line
+        key={`h${y}`}
+        points={[0, y, hall.width, y]}
+        stroke={palette.grid}
+      />,
     );
   }
 
@@ -163,7 +215,7 @@ export default function HallCanvas({
               name="bg"
               width={hall.width}
               height={hall.height}
-              fill="#ffffff"
+              fill={palette.bg}
             />
             {gridLines}
             {items.map((item) => (
@@ -191,6 +243,7 @@ export default function HallCanvas({
                   item={item}
                   selected={item.key === selectedKey}
                   status={statuses?.[item.key]}
+                  palette={palette}
                 />
               </Group>
             ))}
@@ -220,37 +273,41 @@ function ItemShape({
   item,
   selected,
   status,
+  palette,
 }: {
   item: EditorItem;
   selected: boolean;
   status?: ItemStatus;
+  palette: Palette;
 }) {
   const { w, h } = item;
   let fill: string | undefined;
   let stroke: string | undefined;
   let dash: number[] | undefined;
-  let textColor = "#111827";
+  let textColor = palette.resource.text;
   let text: string;
 
   if (item.type === "resource") {
-    fill = item.is_active ? "#eff6ff" : "#f1f5f9";
-    stroke = item.is_active ? "#2563eb" : "#94a3b8";
+    ({
+      fill,
+      stroke,
+      text: textColor,
+    } = item.is_active ? palette.resource : palette.inactive);
     dash = item.is_active ? undefined : [10, 6];
-    textColor = item.is_active ? "#1e3a8a" : "#64748b";
     text = item.name;
     if (status) {
-      ({ fill, stroke, text: textColor } = STATUS_STYLE[status.tone]);
+      ({ fill, stroke, text: textColor } = palette.status[status.tone]);
       if (status.caption) text = `${item.name}\n${status.caption}`;
     }
   } else {
-    const style = OBJECT_STYLE[item.kind];
+    const style = palette.objects[item.kind];
     fill = style.fill;
     stroke = style.stroke;
     dash = style.dash;
     textColor = style.text;
     text = item.label ?? "";
   }
-  if (selected) stroke = "#2563eb";
+  if (selected) stroke = palette.selected;
   const strokeWidth = selected ? 4 : 2;
   const fontSize = Math.max(12, Math.min(24, Math.min(w, h) / 3));
 
@@ -271,9 +328,9 @@ function ItemShape({
         <Rect
           width={w}
           height={h}
-          cornerRadius={item.type === "resource" ? 8 : 2}
+          cornerRadius={item.type === "resource" ? 10 : 2}
           fill={fill}
-          stroke={stroke ?? (selected ? "#2563eb" : undefined)}
+          stroke={stroke ?? (selected ? palette.selected : undefined)}
           strokeWidth={strokeWidth}
           dash={dash}
         />
@@ -286,7 +343,10 @@ function ItemShape({
         verticalAlign="middle"
         fontSize={fontSize}
         fontStyle={
-          item.type === "object" && item.kind === "label" ? "bold" : "normal"
+          item.type === "resource" ||
+          (item.type === "object" && item.kind === "label")
+            ? "bold"
+            : "normal"
         }
         fill={textColor}
         padding={4}

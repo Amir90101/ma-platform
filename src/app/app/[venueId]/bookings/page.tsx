@@ -107,7 +107,7 @@ async function Bookings({
       <PageHeader title={t("title")} description={t("hint")} />
 
       <nav
-        className="bg-card flex flex-wrap items-center justify-between gap-3 rounded-xl border p-2 shadow-xs"
+        className="bg-card shadow-card flex flex-wrap items-center justify-between gap-3 rounded-2xl p-2"
         aria-label={t("date")}
       >
         <div className="flex min-w-0 items-center gap-1">

@@ -17,14 +17,24 @@ async function publicVenue(page: Page) {
   return venue;
 }
 
+// Шаги брони: дата и время → место → контакты.
 async function pickSlot(page: Page, table: string, time: string) {
   const picker = page.getByTestId("booking-picker");
-  await picker.getByRole("button", { name: "Завтра" }).click();
-  await picker.getByRole("tab", { name: "Список" }).click();
+  await picker.getByRole("button", { name: "Завтра", exact: true }).click();
   await page
-    .locator(`[data-testid="slot-resource"][data-resource="${table}"]`)
-    .getByRole("button", { name: new RegExp(`^${time}$`) })
+    .getByTestId("time-slots")
+    .getByRole("button")
+    .filter({ hasText: new RegExp(`^${time}`) })
     .click();
+  await picker.getByRole("button", { name: "Выбрать место" }).click();
+  await seat(page, table).click();
+  await picker.getByRole("button", { name: "Далее" }).click();
+}
+
+function seat(page: Page, table: string) {
+  return page
+    .getByTestId("seat-list")
+    .getByRole("button", { name: table, exact: true });
 }
 
 async function fillGuest(page: Page, name: string, phone: string) {
@@ -170,9 +180,6 @@ test("окно заняли, пока гость заполнял форму: п
   );
   await expect(page.getByTestId("guest-form")).toHaveCount(0);
   await expect(page.getByTestId("booking-picker")).toBeVisible();
-  await expect(
-    page
-      .locator('[data-testid="slot-resource"][data-resource="Стол 3"]')
-      .getByRole("button", { name: /^18:00$/ }),
-  ).toHaveCount(0);
+  // Возврат к выбору места: Стол 3 на 18:00 уже занят.
+  await expect(seat(page, "Стол 3")).toBeDisabled();
 });

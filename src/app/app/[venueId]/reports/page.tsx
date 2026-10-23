@@ -167,27 +167,25 @@ async function Reports({
       ) : (
         <section className="grid gap-4" data-testid="revenue">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xl font-semibold">{t("revenueTitle")}</h2>
+            <h2 className="text-xl font-bold">{t("revenueTitle")}</h2>
           </div>
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="bg-primary text-primary-foreground rounded-xl p-4 shadow-xs">
-              <dt className="text-primary-foreground/80 text-sm">
-                {t("total")}
-              </dt>
+            <div className="bg-sidebar rounded-2xl p-5 text-white">
+              <dt className="text-sm text-white/70">{t("total")}</dt>
               <dd
-                className="text-2xl font-semibold tabular-nums"
+                className="text-3xl font-bold tabular-nums"
                 data-testid="revenue-total"
               >
                 {money(revenue.total)}
               </dd>
             </div>
             {PAYMENT_METHODS.map((m) => (
-              <div key={m} className="rounded-lg border p-3">
+              <div key={m} className="bg-card shadow-card rounded-2xl p-5">
                 <dt className="text-muted-foreground text-sm">
                   {t(`methods.${m}`)}
                 </dt>
                 <dd
-                  className="text-xl font-medium tabular-nums"
+                  className="text-2xl font-bold tabular-nums"
                   data-testid={`revenue-${m}`}
                 >
                   {money(revenue.by_method[m])}
@@ -200,8 +198,8 @@ async function Reports({
             <p className="text-muted-foreground">{t("noRevenue")}</p>
           ) : (
             <>
-              <div className="grid gap-2">
-                <h3 className="font-medium">{t("byResource")}</h3>
+              <div className="bg-card shadow-card grid gap-2 rounded-2xl p-5">
+                <h3 className="font-semibold">{t("byResource")}</h3>
                 <table
                   className="w-full text-sm"
                   data-testid="revenue-resources"
@@ -244,8 +242,8 @@ async function Reports({
                 </table>
               </div>
 
-              <div className="grid gap-2">
-                <h3 className="font-medium">{t("byDay")}</h3>
+              <div className="bg-card shadow-card grid gap-2 rounded-2xl p-5">
+                <h3 className="font-semibold">{t("byDay")}</h3>
                 <div className="overflow-x-auto">
                   <table
                     className="w-full min-w-md text-sm"
@@ -317,7 +315,7 @@ async function LoadSection({
   return (
     <>
       <section className="grid gap-3" data-testid="load">
-        <h2 className="text-xl font-semibold">{t("loadTitle")}</h2>
+        <h2 className="text-xl font-bold">{t("loadTitle")}</h2>
         <p className="text-muted-foreground text-sm">{t("loadHint")}</p>
         {load.open_minutes === 0 ? (
           <p className="text-muted-foreground">{t("noOpenHours")}</p>
@@ -330,7 +328,10 @@ async function LoadSection({
                 ),
               })}
             </p>
-            <table className="w-full text-sm" data-testid="load-resources">
+            <table
+              className="bg-card shadow-card w-full rounded-2xl text-sm [&_td]:px-5 [&_th]:px-5 [&_th]:pt-4 [&_tr:last-child_td]:pb-4"
+              data-testid="load-resources"
+            >
               <thead className="text-muted-foreground text-left">
                 <tr>
                   <th className="py-1 font-normal">{t("resource")}</th>
@@ -370,26 +371,26 @@ async function LoadSection({
       </section>
 
       <section className="grid gap-3" data-testid="bookings-stats">
-        <h2 className="text-xl font-semibold">{t("bookingsTitle")}</h2>
+        <h2 className="text-xl font-bold">{t("bookingsTitle")}</h2>
         <p className="text-muted-foreground text-sm">{t("bookingsHint")}</p>
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="bg-card rounded-xl border p-4 shadow-xs">
+          <div className="bg-card shadow-card rounded-2xl p-5">
             <dt className="text-muted-foreground text-sm">
               {t("bookingsTotal")}
             </dt>
             <dd
-              className="text-xl font-medium tabular-nums"
+              className="text-2xl font-bold tabular-nums"
               data-testid="bookings-total"
             >
               {bookings.total}
             </dd>
           </div>
-          <div className="bg-card rounded-xl border p-4 shadow-xs">
+          <div className="bg-card shadow-card rounded-2xl p-5">
             <dt className="text-muted-foreground text-sm">
               {t("onlineShare")}
             </dt>
             <dd
-              className="text-xl font-medium tabular-nums"
+              className="text-2xl font-bold tabular-nums"
               data-testid="bookings-online"
             >
               {t("onlineShareValue", {
@@ -398,22 +399,22 @@ async function LoadSection({
               })}
             </dd>
           </div>
-          <div className="bg-card rounded-xl border p-4 shadow-xs">
+          <div className="bg-card shadow-card rounded-2xl p-5">
             <dt className="text-muted-foreground text-sm">
               {t("noShowsTotal")}
             </dt>
             <dd
-              className="text-xl font-medium tabular-nums"
+              className="text-2xl font-bold tabular-nums"
               data-testid="bookings-no-show"
             >
               {bookings.no_show}
             </dd>
           </div>
-          <div className="bg-card rounded-xl border p-4 shadow-xs">
+          <div className="bg-card shadow-card rounded-2xl p-5">
             <dt className="text-muted-foreground text-sm">
               {t("onlineNoShows")}
             </dt>
-            <dd className="text-xl font-medium tabular-nums">
+            <dd className="text-2xl font-bold tabular-nums">
               {bookings.online_no_show}
             </dd>
           </div>
@@ -422,8 +423,8 @@ async function LoadSection({
           <p className="text-muted-foreground">{t("noNoShows")}</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid content-start gap-2">
-              <h3 className="font-medium">{t("noShowsByDay")}</h3>
+            <div className="bg-card shadow-card grid content-start gap-2 rounded-2xl p-5">
+              <h3 className="font-semibold">{t("noShowsByDay")}</h3>
               <ul className="divide-y text-sm">
                 {load.no_shows_by_day.map((d) => (
                   <li key={d.day} className="flex justify-between py-1.5">
@@ -433,8 +434,8 @@ async function LoadSection({
                 ))}
               </ul>
             </div>
-            <div className="grid content-start gap-2">
-              <h3 className="font-medium">{t("noShowsByGuest")}</h3>
+            <div className="bg-card shadow-card grid content-start gap-2 rounded-2xl p-5">
+              <h3 className="font-semibold">{t("noShowsByGuest")}</h3>
               <ul className="divide-y text-sm" data-testid="no-show-guests">
                 {load.no_shows_by_guest.map((g) => (
                   <li

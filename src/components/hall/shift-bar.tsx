@@ -39,7 +39,7 @@ export function ShiftBar({
 
   return (
     <section
-      className="bg-card data-[open=false]:border-status-paused/50 data-[open=false]:bg-status-paused-soft flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-xl border px-4 py-3 shadow-xs"
+      className="bg-card data-[open=false]:border-status-paused/50 data-[open=false]:bg-status-paused-soft shadow-card flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-2xl px-4 py-3"
       data-open={!!shift}
       data-testid="shift-bar"
     >

@@ -178,7 +178,7 @@ function BookingItem({
   return (
     <li
       className={cn(
-        "bg-card relative grid gap-1.5 overflow-hidden rounded-xl border py-3 pr-3 pl-4 text-sm shadow-xs",
+        "bg-card shadow-card relative grid gap-1.5 overflow-hidden rounded-2xl py-3 pr-3 pl-4 text-sm",
         inactive && "opacity-70",
       )}
       data-testid="feed-booking"

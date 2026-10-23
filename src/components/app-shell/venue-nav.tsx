@@ -54,10 +54,10 @@ export function SidebarNav({
             href={`/app/${venueId}${PATHS[key]}`}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+              "relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-muted hover:text-foreground",
+                ? "bg-sidebar-accent text-sidebar-accent-foreground before:bg-sidebar-primary before:absolute before:inset-y-2 before:-left-4 before:w-1 before:rounded-r-full"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
             )}
           >
             <Icon
@@ -87,7 +87,7 @@ export function BottomNav({
   return (
     <nav
       aria-label={t("nav")}
-      className="bg-card/95 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden"
+      className="bg-sidebar fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul
         className="mx-auto grid max-w-lg"
@@ -103,11 +103,14 @@ export function BottomNav({
                 aria-current={active ? "page" : undefined}
                 aria-label={t(`items.${key}`)}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium",
-                  active ? "text-primary" : "text-muted-foreground",
+                  "flex min-h-16 flex-col items-center justify-center gap-1 text-[11px] font-medium",
+                  active ? "text-white" : "text-sidebar-foreground",
                 )}
               >
-                <Icon aria-hidden="true" className="size-5" />
+                <Icon
+                  aria-hidden="true"
+                  className={cn("size-5", active && "text-sidebar-primary")}
+                />
                 <span aria-hidden="true">{t(`short.${key}`)}</span>
               </Link>
             </li>

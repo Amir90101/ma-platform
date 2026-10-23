@@ -43,100 +43,116 @@ export default async function Home() {
   const tCommon = await getTranslations("Common");
   return (
     <div className="flex flex-1 flex-col">
-      <header className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
-        <Logo name={tCommon("productName")} />
-        <nav className="flex items-center gap-2">
-          <Link href="/login" className={buttonVariants({ variant: "ghost" })}>
-            {t("login")}
-          </Link>
-          <Link href="/register" className={buttonVariants()}>
-            {t("start")}
-          </Link>
-        </nav>
+      <header className="dark bg-background text-foreground">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
+          <Logo name={tCommon("productName")} />
+          <nav className="flex items-center gap-2">
+            <Link
+              href="/login"
+              className={buttonVariants({ variant: "ghost" })}
+            >
+              {t("login")}
+            </Link>
+            <Link href="/register" className={buttonVariants()}>
+              {t("start")}
+            </Link>
+          </nav>
+        </div>
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-12 lg:grid-cols-2 lg:py-20">
-          <div className="grid gap-6">
-            <p className="text-primary text-sm font-semibold">{t("eyebrow")}</p>
-            <h1 className="text-4xl leading-tight font-semibold sm:text-5xl">
-              {t("title")}
-            </h1>
-            <p className="text-muted-foreground max-w-xl text-lg">
-              {t("subtitle")}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/register" className={buttonVariants({ size: "lg" })}>
-                {t("start")}
-              </Link>
-              <Link
-                href="/demo-billiards"
-                className={buttonVariants({ size: "lg", variant: "outline" })}
-              >
-                {t("demo")}
-              </Link>
+        <div className="dark bg-background text-foreground">
+          <section className="mx-auto grid w-full max-w-6xl items-center gap-10 px-4 py-12 lg:grid-cols-2 lg:py-20">
+            <div className="grid gap-6">
+              <p className="text-primary text-sm font-semibold">
+                {t("eyebrow")}
+              </p>
+              <h1 className="text-4xl leading-tight font-bold sm:text-5xl">
+                {t("title")}
+              </h1>
+              <p className="text-muted-foreground max-w-xl text-lg">
+                {t("subtitle")}
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/register"
+                  className={buttonVariants({ size: "lg" })}
+                >
+                  {t("start")}
+                </Link>
+                <Link
+                  href="/demo-billiards"
+                  className={buttonVariants({ size: "lg", variant: "outline" })}
+                >
+                  {t("demo")}
+                </Link>
+              </div>
+              <p className="text-muted-foreground text-sm">{t("noPayment")}</p>
             </div>
-            <p className="text-muted-foreground text-sm">{t("noPayment")}</p>
-          </div>
 
-          {/* Иллюстрация: как выглядит карта зала. */}
-          <div
-            aria-hidden="true"
-            className="bg-foreground rounded-3xl p-3 shadow-2xl sm:p-4"
-          >
-            <div className="bg-background grid gap-4 rounded-2xl p-4 sm:p-5">
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-semibold">{t("mockTitle")}</span>
-                <span className="text-muted-foreground">{t("mockShift")}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                {DEMO_TABLES.map((table) => (
-                  <div
-                    key={table.key}
-                    className={cn(
-                      "grid aspect-[4/3] content-center justify-items-center gap-1 rounded-xl border-2 p-2 text-center",
-                      TONE[table.state],
-                    )}
-                  >
-                    <span className="text-foreground text-sm font-semibold">
-                      {t(`mockPlaces.${table.key}`)}
-                    </span>
-                    <span className="text-xs font-medium tabular-nums">
-                      {table.caption === "booked"
-                        ? t("mockBooked")
-                        : table.caption || t("mockFree")}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div className="bg-card flex items-center justify-between rounded-xl border p-3 text-sm">
-                <span>
-                  <span className="block font-semibold">{t("mockPanel")}</span>
+            {/* Иллюстрация: как выглядит карта зала. */}
+            <div
+              aria-hidden="true"
+              className="bg-card ring-border rounded-3xl p-3 shadow-2xl ring-1 sm:p-4"
+            >
+              <div className="bg-background grid gap-4 rounded-2xl p-4 sm:p-5">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold">{t("mockTitle")}</span>
                   <span className="text-muted-foreground">
-                    {t("mockPanelHint")}
+                    {t("mockShift")}
                   </span>
-                </span>
-                <span className="text-xl font-semibold tabular-nums">
-                  {t("mockAmount")}
-                </span>
+                </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {DEMO_TABLES.map((table) => (
+                    <div
+                      key={table.key}
+                      className={cn(
+                        "grid aspect-[4/3] content-center justify-items-center gap-1 rounded-xl border-2 p-2 text-center",
+                        TONE[table.state],
+                      )}
+                    >
+                      <span className="text-foreground text-sm font-semibold">
+                        {t(`mockPlaces.${table.key}`)}
+                      </span>
+                      <span className="text-xs font-medium tabular-nums">
+                        {table.caption === "booked"
+                          ? t("mockBooked")
+                          : table.caption || t("mockFree")}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="bg-card flex items-center justify-between rounded-xl p-3 text-sm">
+                  <span>
+                    <span className="block font-semibold">
+                      {t("mockPanel")}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {t("mockPanelHint")}
+                    </span>
+                  </span>
+                  <span className="text-xl font-semibold tabular-nums">
+                    {t("mockAmount")}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </div>
 
-        <section className="bg-card border-y">
+        <section className="bg-card">
           <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14">
             <div className="grid max-w-2xl gap-2">
-              <h2 className="text-3xl font-semibold">{t("featuresTitle")}</h2>
+              <h2 className="text-3xl font-bold">{t("featuresTitle")}</h2>
               <p className="text-muted-foreground">{t("featuresHint")}</p>
             </div>
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map(({ key, icon: Icon }) => (
                 <li
                   key={key}
-                  className="bg-background grid content-start gap-3 rounded-xl border p-5"
+                  className="bg-background grid content-start gap-3 rounded-2xl p-5"
                 >
-                  <span className="bg-secondary text-secondary-foreground grid size-10 place-items-center rounded-lg">
+                  <span className="bg-secondary text-primary grid size-11 place-items-center rounded-xl">
                     <Icon aria-hidden="true" className="size-5" />
                   </span>
                   <h3 className="font-semibold">
@@ -152,7 +168,7 @@ export default async function Home() {
         </section>
 
         <section className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-14">
-          <h2 className="text-3xl font-semibold">{t("stepsTitle")}</h2>
+          <h2 className="text-3xl font-bold">{t("stepsTitle")}</h2>
           <ol className="grid gap-4 md:grid-cols-3">
             {(["one", "two", "three"] as const).map((step, i) => (
               <li key={step} className="grid content-start gap-2">
@@ -170,13 +186,10 @@ export default async function Home() {
         </section>
 
         <section className="px-4 pb-16">
-          <div className="bg-primary text-primary-foreground mx-auto grid w-full max-w-6xl justify-items-start gap-4 rounded-3xl p-8 sm:p-12">
-            <h2 className="max-w-xl text-3xl font-semibold">{t("ctaTitle")}</h2>
-            <p className="max-w-xl">{t("ctaText")}</p>
-            <Link
-              href="/register"
-              className={buttonVariants({ size: "lg", variant: "secondary" })}
-            >
+          <div className="bg-sidebar mx-auto grid w-full max-w-6xl justify-items-start gap-4 rounded-3xl p-8 text-white sm:p-12">
+            <h2 className="max-w-xl text-3xl font-bold">{t("ctaTitle")}</h2>
+            <p className="max-w-xl text-white/70">{t("ctaText")}</p>
+            <Link href="/register" className={buttonVariants({ size: "lg" })}>
               {t("start")}
             </Link>
           </div>

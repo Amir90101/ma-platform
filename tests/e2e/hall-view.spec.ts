@@ -23,16 +23,17 @@ test("администратор видит карту зала, но фигур
     page.getByRole("link", { name: "Открыть редактор" }),
   ).toHaveCount(0);
 
-  // Стол 1 стоит в (100, 120) размером 180×100 на холсте 1200 единиц.
+  // Стол 1 стоит в (100, 120) размером 180×100. Схема обрезана по фигурам
+  // с отступом 30: x 70–1170 (вход до 1140), y от 90.
   const canvas = page.getByTestId("hall-canvas");
   await canvas.scrollIntoViewIfNeeded();
   await expect(canvas.locator("canvas").first()).toBeVisible();
   const tableCenter = async () => {
     const box = (await canvas.boundingBox())!;
-    const scale = box.width / 1200;
+    const scale = box.width / 1100;
     return {
-      x: box.x + 190 * scale,
-      y: box.y + 170 * scale,
+      x: box.x + 120 * scale,
+      y: box.y + 80 * scale,
       scale,
     };
   };

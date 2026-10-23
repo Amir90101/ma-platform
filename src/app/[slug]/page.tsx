@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { PhotoGallery } from "@/components/public/photo-gallery";
 import { PublicBooking } from "@/components/public/public-booking";
 import { Clock, MapPin, Phone } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -51,8 +52,8 @@ export default async function PublicVenuePage({
   return (
     <Suspense
       fallback={
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6">
-          <p className="text-muted-foreground">{t("loading")}</p>
+        <main className="public-dark dark bg-background text-muted-foreground flex-1 px-4 py-6">
+          <p className="mx-auto max-w-6xl">{t("loading")}</p>
         </main>
       }
     >
@@ -77,114 +78,114 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
   const todayHours = venue.working_hours.find(
     (d) => d.weekday === isoWeekday(today),
   );
-  const [cover, ...more] = venue.photos;
+  const photos = venue.photos.map(publicPhotoUrl);
 
   return (
-    <div className="flex flex-1 flex-col">
-      <main className="flex-1">
-        {/* Обложка: первое фото, поверх — название и адрес. */}
-        <section className="bg-foreground relative isolate overflow-hidden">
-          <div className="absolute inset-0 -z-10" data-testid="public-photos">
-            {cover && (
-              <Image
-                src={publicPhotoUrl(cover)}
-                alt={t("photoAlt", { name: venue.name, n: 1 })}
-                fill
-                // Файлы отдаёт Storage; оптимизатор Next им не нужен.
-                unoptimized
-                priority
-                className="object-cover"
-              />
-            )}
-          </div>
-          {more.length > 0 && (
-            <div className="absolute right-4 bottom-4 z-10 hidden gap-2 sm:flex">
-              {more.slice(0, 3).map((path, i) => (
-                <Image
-                  key={path}
-                  src={publicPhotoUrl(path)}
-                  alt={t("photoAlt", { name: venue.name, n: i + 2 })}
-                  width={96}
-                  height={72}
-                  unoptimized
-                  className="aspect-4/3 w-20 rounded-lg border-2 border-white/80 object-cover shadow-lg"
-                />
-              ))}
-            </div>
-          )}
+    <div className="public-dark dark bg-background text-foreground flex flex-1 flex-col">
+      <main className="mx-auto grid w-full max-w-6xl flex-1 content-start gap-4 px-4 pt-4 pb-10 lg:gap-6 lg:pt-8">
+        {photos.length > 0 ? (
+          <PhotoGallery photos={photos} name={venue.name} />
+        ) : (
           <div
             aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-gradient-to-t from-black/80 via-black/40 to-black/10"
+            className="from-primary/30 to-muted h-32 rounded-3xl bg-gradient-to-br sm:h-48"
           />
-          <div className="mx-auto grid min-h-72 w-full max-w-6xl content-end gap-3 px-4 pt-24 pb-8 text-white sm:min-h-96">
-            <p className="text-sm font-medium text-white/80">
-              {tVenue(`types.${venue.type}`)}
-            </p>
-            <h1 className="text-4xl font-semibold sm:text-5xl">{venue.name}</h1>
-            <p className="flex items-center gap-1.5 text-white/90">
-              <MapPin aria-hidden="true" className="size-4 shrink-0" />
-              {place}
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {bookable && (
-                <a
-                  href="#booking"
-                  className={cn(
-                    buttonVariants({ size: "lg" }),
-                    "hidden lg:inline-flex",
-                  )}
-                >
-                  {tBooking("book")}
-                </a>
-              )}
-              <a
-                href={`https://2gis.kz/search/${encodeURIComponent(place)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(
-                  buttonVariants({ variant: "secondary", size: "lg" }),
-                  "bg-white/15 text-white backdrop-blur hover:bg-white/25",
-                )}
-              >
-                <MapPin aria-hidden="true" />
-                {t("onMap")}
-              </a>
-              {venue.phone && (
-                <a
-                  href={`tel:${venue.phone.replace(/[^\d+]/g, "")}`}
-                  className={cn(
-                    buttonVariants({ variant: "secondary", size: "lg" }),
-                    "bg-white/15 text-white backdrop-blur hover:bg-white/25",
-                  )}
-                >
-                  <Phone aria-hidden="true" />
-                  {t("call")} {venue.phone}
-                </a>
-              )}
+        )}
+
+        <section className="bg-card grid gap-4 rounded-3xl p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            {photos[0] && (
+              <Image
+                src={photos[0]}
+                alt=""
+                width={64}
+                height={64}
+                unoptimized
+                className="hidden size-16 shrink-0 rounded-2xl object-cover sm:block"
+              />
+            )}
+            <div className="grid min-w-0 flex-1 gap-1">
+              <p className="text-primary text-sm font-semibold">
+                {tVenue(`types.${venue.type}`)}
+              </p>
+              <h1 className="text-3xl font-bold sm:text-4xl">{venue.name}</h1>
+              <p className="text-muted-foreground flex items-center gap-1.5">
+                <MapPin aria-hidden="true" className="size-4 shrink-0" />
+                {place}
+              </p>
             </div>
           </div>
+
+          <p className="flex items-center gap-2 text-sm">
+            <span
+              aria-hidden="true"
+              className={cn(
+                "size-2 rounded-full",
+                todayHours ? "bg-success" : "bg-muted-foreground",
+              )}
+            />
+            <Clock
+              aria-hidden="true"
+              className="text-muted-foreground size-4"
+            />
+            {todayHours
+              ? t("todayHours", {
+                  from: hhmm(todayHours.open),
+                  to: hhmm(todayHours.close),
+                })
+              : t("todayClosed")}
+          </p>
+
+          <div className="grid grid-cols-[1fr_auto_auto] gap-2 sm:flex">
+            {bookable ? (
+              <a
+                href="#booking"
+                className={cn(buttonVariants({ size: "lg" }), "sm:px-10")}
+              >
+                {tBooking("book")}
+              </a>
+            ) : (
+              <span className="sm:hidden" />
+            )}
+            <a
+              href={`https://2gis.kz/search/${encodeURIComponent(place)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t("onMap")}
+              title={t("onMap")}
+              className={buttonVariants({
+                variant: "outline",
+                size: "icon-lg",
+              })}
+            >
+              <MapPin aria-hidden="true" />
+            </a>
+            {venue.phone && (
+              <a
+                href={`tel:${venue.phone.replace(/[^\d+]/g, "")}`}
+                aria-label={`${t("call")} ${venue.phone}`}
+                title={`${t("call")} ${venue.phone}`}
+                className={buttonVariants({
+                  variant: "outline",
+                  size: "icon-lg",
+                })}
+              >
+                <Phone aria-hidden="true" />
+              </a>
+            )}
+          </div>
+
+          {venue.description && (
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
+              {venue.description}
+            </p>
+          )}
         </section>
 
-        <div className="mx-auto grid w-full max-w-6xl items-start gap-6 px-4 py-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:py-10">
-          <div className="grid min-w-0 gap-6">
-            <p className="text-muted-foreground flex items-center gap-2 text-sm">
-              <Clock aria-hidden="true" className="size-4" />
-              {todayHours
-                ? t("todayHours", {
-                    from: hhmm(todayHours.open),
-                    to: hhmm(todayHours.close),
-                  })
-                : t("todayClosed")}
-            </p>
-
-            {venue.description && (
-              <p className="text-lg leading-relaxed whitespace-pre-line">
-                {venue.description}
-              </p>
-            )}
-
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-6">
+          <div className="grid min-w-0 gap-4">
             {!venue.online_booking_enabled && (
-              <p className="bg-card rounded-2xl border p-5 text-sm shadow-xs">
+              <p className="bg-card rounded-3xl p-5 text-sm">
                 {t("bookingOff")}
               </p>
             )}
@@ -192,10 +193,10 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
             {bookable && (
               <section
                 id="booking"
-                className="bg-card grid scroll-mt-4 gap-4 rounded-2xl border p-4 shadow-sm sm:p-6"
+                className="bg-card grid min-w-0 scroll-mt-4 gap-5 rounded-3xl p-4 sm:p-6"
                 aria-labelledby="booking-title"
               >
-                <h2 id="booking-title" className="text-2xl font-semibold">
+                <h2 id="booking-title" className="text-2xl font-bold">
                   {tBooking("title")}
                 </h2>
                 <PublicBooking
@@ -213,31 +214,19 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
             )}
           </div>
 
-          <aside className="grid content-start gap-6">
-            <Hours venue={venue} />
+          <aside className="grid content-start gap-4">
             <Prices venue={venue} />
+            <Hours venue={venue} />
             <Rules venue={venue} />
           </aside>
         </div>
       </main>
 
-      <footer className="text-muted-foreground border-t pb-24 lg:pb-0">
+      <footer className="text-muted-foreground border-t">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 text-xs">
           {t("poweredBy", { product: tCommon("productName") })}
         </div>
       </footer>
-
-      {/* На телефоне кнопка брони всегда под пальцем. */}
-      {bookable && (
-        <div className="bg-card/95 fixed inset-x-0 bottom-0 z-40 border-t p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
-          <a
-            href="#booking"
-            className={cn(buttonVariants({ size: "lg" }), "w-full")}
-          >
-            {tBooking("book")}
-          </a>
-        </div>
-      )}
     </div>
   );
 }
@@ -247,10 +236,10 @@ async function Hours({ venue }: { venue: PublicVenue }) {
   const tVenue = await getTranslations("Venue");
   return (
     <section
-      className="bg-card grid gap-3 rounded-2xl border p-5 shadow-xs"
+      className="bg-card grid gap-3 rounded-3xl p-5"
       data-testid="public-hours"
     >
-      <h2 className="font-semibold">{t("hoursTitle")}</h2>
+      <h2 className="text-lg font-bold">{t("hoursTitle")}</h2>
       <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
         {[1, 2, 3, 4, 5, 6, 7].map((day) => {
           const hours = venue.working_hours.find((d) => d.weekday === day);
@@ -296,15 +285,15 @@ async function Prices({ venue }: { venue: PublicVenue }) {
 
   return (
     <section
-      className="bg-card grid gap-3 rounded-2xl border p-5 shadow-xs"
+      className="bg-card grid gap-3 rounded-3xl p-5"
       data-testid="public-prices"
     >
-      <h2 className="font-semibold">{t("pricesTitle")}</h2>
-      <ul className="divide-y rounded-lg border text-sm">
+      <h2 className="text-lg font-bold">{t("pricesTitle")}</h2>
+      <ul className="grid gap-2 text-sm">
         {venue.tariffs.map((x) => (
           <li
             key={`${x.name}-${x.time_from}`}
-            className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-3 py-2"
+            className="bg-muted flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 rounded-xl px-3 py-2.5"
           >
             <span>
               <span className="font-medium">{x.name}</span>
@@ -314,7 +303,7 @@ async function Prices({ venue }: { venue: PublicVenue }) {
                   ` · ${x.resource_kinds.map((k) => tHall(`resourceKinds.${k}`)).join(", ")}`}
               </span>
             </span>
-            <span className="font-medium tabular-nums">
+            <span className="font-bold tabular-nums">
               {t("perHour", { price: x.price_per_hour })}
             </span>
           </li>
@@ -322,14 +311,13 @@ async function Prices({ venue }: { venue: PublicVenue }) {
       </ul>
       {venue.packages.length > 0 && (
         <>
-          <h3 className="font-medium">{t("packagesTitle")}</h3>
-          <ul className="grid gap-1 text-sm">
+          <h3 className="font-semibold">{t("packagesTitle")}</h3>
+          <ul className="grid grid-cols-2 gap-2 text-sm">
             {venue.packages.map((p) => (
-              <li key={p.name}>
-                <span className="font-medium">{p.name}</span>
+              <li key={p.name} className="bg-muted grid rounded-xl px-3 py-2.5">
+                <span className="font-semibold">{p.name}</span>
                 <span className="text-muted-foreground">
-                  {" "}
-                  · {t("packageLine", { minutes: p.minutes, price: p.price })}
+                  {t("packageLine", { minutes: p.minutes, price: p.price })}
                 </span>
               </li>
             ))}
@@ -344,10 +332,10 @@ async function Rules({ venue }: { venue: PublicVenue }) {
   const t = await getTranslations("Public");
   return (
     <section
-      className="bg-card grid gap-3 rounded-2xl border p-5 shadow-xs"
+      className="bg-card grid gap-3 rounded-3xl p-5"
       data-testid="public-rules"
     >
-      <h2 className="font-semibold">{t("rulesTitle")}</h2>
+      <h2 className="text-lg font-bold">{t("rulesTitle")}</h2>
       <ul className="text-muted-foreground grid list-disc gap-1 pl-5 text-sm">
         <li>{t("rulePayOnSite")}</li>
         <li>{t("ruleHold", { minutes: venue.no_show_after_min })}</li>

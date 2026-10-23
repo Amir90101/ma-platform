@@ -20,6 +20,7 @@ import {
   NativeSelect,
   NativeSelectOption,
 } from "@/components/ui/native-select";
+import { fitToItems } from "@/lib/hall/fit";
 import type { OpenSession } from "@/lib/hall/open-sessions";
 import { createClient } from "@/lib/supabase/client";
 import type { Layout, LayoutResource } from "@/lib/validation/hall";
@@ -35,7 +36,7 @@ import type { UpcomingBooking } from "@/lib/hall/upcoming-bookings";
 
 const HallCanvas = dynamic(() => import("./hall-canvas"), {
   ssr: false,
-  loading: () => <div className="bg-muted/30 size-full animate-pulse" />,
+  loading: () => <div className="size-full animate-pulse bg-[#1b1b1b]" />,
 });
 
 const DURATIONS = [30, 60, 90, 120, 180, 240];
@@ -59,7 +60,7 @@ const STATE_DOT = {
   paused: "bg-status-paused",
 } as const;
 const STATE_CHIP = {
-  free: "bg-card border-border",
+  free: "bg-card border-transparent shadow-card",
   busy: "bg-status-busy-soft border-status-busy/30",
   paused: "bg-status-paused-soft border-status-paused/40",
 } as const;
@@ -187,6 +188,7 @@ export function HallView({
     })),
     ...resources.map((r) => ({ ...r, type: "resource" as const, key: r.id! })),
   ];
+  const fitted = fitToItems(hall, items);
   const statuses: Record<string, ItemStatus> = {};
   for (const r of resources) {
     const s = sessionByResource.get(r.id!);
@@ -226,14 +228,14 @@ export function HallView({
           {halls.length > 1 ? (
             <nav
               aria-label={t("halls")}
-              className="bg-muted flex flex-wrap gap-1 rounded-lg p-1"
+              className="bg-card shadow-card flex flex-wrap gap-1 rounded-xl p-1"
             >
               {halls.map((h) => (
                 <Link
                   key={h.id}
                   href={`/app/${venueId}/hall?hall=${h.id}`}
                   aria-current={h.id === hall.id ? "page" : undefined}
-                  className="text-muted-foreground hover:text-foreground aria-[current=page]:bg-card aria-[current=page]:text-foreground rounded-md px-3 py-1.5 text-sm font-medium aria-[current=page]:shadow-xs"
+                  className="text-muted-foreground hover:text-foreground aria-[current=page]:bg-foreground aria-[current=page]:text-background rounded-lg px-3 py-1.5 text-sm font-semibold"
                 >
                   {h.name}
                 </Link>
@@ -246,7 +248,7 @@ export function HallView({
             {(["free", "busy", "paused"] as const).map((state) => (
               <li
                 key={state}
-                className="bg-card flex items-center gap-2 rounded-full border px-3 py-1"
+                className="bg-card shadow-card flex items-center gap-2 rounded-full px-3 py-1"
               >
                 <span
                   aria-hidden="true"
@@ -262,12 +264,15 @@ export function HallView({
         </div>
 
         <div
-          className="bg-card relative w-full overflow-hidden rounded-xl border shadow-xs"
-          style={{ aspectRatio: `${hall.width} / ${hall.height}` }}
+          className="shadow-card relative w-full overflow-hidden rounded-2xl bg-[#1b1b1b]"
+          style={{
+            aspectRatio: `${fitted.size.width} / ${fitted.size.height}`,
+          }}
         >
           <HallCanvas
-            hall={hall}
-            items={items}
+            hall={fitted.size}
+            items={fitted.items}
+            dark
             selectedKey={selectedKey}
             editable={false}
             statuses={statuses}
@@ -302,7 +307,7 @@ export function HallView({
                     data-state={state}
                     className={
                       STATE_CHIP[state] +
-                      " aria-pressed:ring-primary grid w-full gap-0.5 rounded-lg border px-3 py-2 text-left text-sm transition-shadow hover:shadow-sm aria-pressed:ring-2"
+                      " aria-pressed:ring-foreground grid w-full gap-0.5 rounded-xl border px-3 py-2.5 text-left text-sm transition-shadow hover:shadow-md aria-pressed:ring-2"
                     }
                   >
                     <span className="flex min-w-0 items-center gap-2">
@@ -312,7 +317,7 @@ export function HallView({
                           STATE_DOT[state] + " size-2.5 shrink-0 rounded-full"
                         }
                       />
-                      <span className="truncate font-medium">{r.name}</span>
+                      <span className="truncate font-semibold">{r.name}</span>
                     </span>
                     <span className="text-muted-foreground pl-4.5 text-xs tabular-nums">
                       <span className="sr-only"> · </span>
@@ -332,7 +337,7 @@ export function HallView({
 
       <section
         ref={panelRef}
-        className="bg-card grid scroll-mt-20 gap-4 rounded-xl border p-4 shadow-xs sm:p-5 lg:sticky lg:top-24"
+        className="bg-card shadow-card grid scroll-mt-20 gap-4 rounded-2xl p-4 sm:p-5 lg:sticky lg:top-24"
         data-testid="resource-panel"
         data-realtime={realtime}
       >
@@ -540,7 +545,7 @@ function StartForm({
               return (
                 <label
                   key={value}
-                  className="has-checked:border-primary has-checked:bg-secondary has-checked:ring-primary hover:bg-muted/60 relative grid cursor-pointer gap-1 rounded-lg border p-3 has-checked:ring-1"
+                  className="bg-muted hover:bg-accent has-checked:bg-foreground has-checked:text-background group relative grid cursor-pointer gap-1 rounded-xl p-3 transition-colors"
                 >
                   <input
                     type="radio"
@@ -555,17 +560,17 @@ function StartForm({
                   </span>
                   {p ? (
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className="text-muted-foreground text-xs">
+                      <span className="text-xs opacity-70">
                         {formatMinutes(tw, p.minutes)}
                       </span>
-                      <span className="text-base font-semibold tabular-nums">
+                      <span className="text-base font-bold tabular-nums">
                         {tw("amountValue", {
                           amount: p.price.toLocaleString("ru-RU"),
                         })}
                       </span>
                     </span>
                   ) : (
-                    <span className="text-muted-foreground text-xs">
+                    <span className="text-xs opacity-70">
                       {tw("perMinuteHint")}
                     </span>
                   )}
