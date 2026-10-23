@@ -293,6 +293,15 @@
 
 Запрет на `update`, `delete` и `truncate` держат триггеры, поэтому он действует и для `service_role`. Пишут функции-триггеры через `write_audit`: на `sessions` (`session.voided`, `session.discount`), на `session_segments` (`session.time_edited` — правка закрытого отрезка) и на `payments` (`payment.voided`) и на `bookings` (`booking.cancelled` — с причиной и признаком отмены гостем).
 
+### telegram_chats, telegram_link_codes, telegram_state, notification_outbox
+
+Telegram-бот (этап 9.4), устройство — `docs/ARCHITECTURE.md`, раздел «Telegram-бот».
+
+- `telegram_chats` — чаты заведения: `venue_id`, `chat_id bigint`, `title`; уникальны по `(venue_id, chat_id)`. Видит и удаляет владелец, создаёт только `telegram_link_chat`.
+- `telegram_link_codes` — одноразовые коды подключения на 30 минут; закрыта для пользователей.
+- `telegram_state` — одна строка: `update_offset` для `getUpdates`.
+- `notification_outbox` — очередь: `kind` (`booking_created`, `booking_cancelled`, `booking_no_show`, `shift_closed`), `payload jsonb` с данными для текста, `claimed_at`, `attempts`, `sent_at`. Пишут триггеры `bookings_notify`, `shifts_notify` и только для заведений с чатами. Закрыта для пользователей, читает сервер ключом `service_role`.
+
 ## Ограничения, которые нельзя оставлять на код
 
 ```sql
@@ -346,6 +355,9 @@ RPC для таблиц «только через RPC» объявлены `secu
 | Функция | Кто вызывает | Что делает |
 | --- | --- | --- |
 | `server_now()` | Все | Время сервера для поправки таймера |
+| `create_telegram_link_code(venue_id)` | Владелец | Одноразовый код подключения чата на 30 минут |
+| `telegram_link_chat(code, chat_id, title)` | Только сервер (`service_role`) | Подключает чат по коду, код гасится; возвращает название заведения или `null` |
+| `telegram_claim_outbox(limit)` | Только сервер (`service_role`) | Порция неотправленных уведомлений, `for update skip locked`; взятая строка не отдаётся повторно 2 минуты, после пяти попыток — больше никогда |
 | `platform_venues()` | Владелец платформы | Все заведения: профиль, организация, email владельца, публикация и готовность настройки (часы, активные места и тарифы, фото, администраторы). Без денег, сеансов, броней и гостей. Остальным `42501` |
 | `platform_create_venue(owner_id, org_name, venue)` | Владелец платформы | Заведение владельцу `owner_id`: в его первую организацию или в новую (`org_name`, иначе название заведения). `venue` — jsonb с полями профиля. Занятый slug — `23505`, не владелец платформы — `42501` |
 | `get_org_staff(org_id)` | Владелец | Сотрудники организации с email и именем из `auth.users`; остальным пустой результат |
@@ -391,6 +403,8 @@ RPC для таблиц «только через RPC» объявлены `secu
 `expected_cash` при закрытии смены = `opening_cash` + неотменённые оплаты наличными за смену.
 
 ## Фоновые задачи (pg_cron)
+
+- `cron_dispatch` — каждую минуту `cron_dispatch_ping()`: POST на адрес из Vault (`cron_dispatch_url`, `cron_dispatch_secret`); без секретов ничего не делает.
 
 | Задача | Расписание | Что делает |
 | --- | --- | --- |

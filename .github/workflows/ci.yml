@@ -51,6 +51,10 @@ jobs:
               -e "s#^SUPABASE_SERVICE_ROLE_KEY=.*#SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY#" \
               -e "s#^NEXT_PUBLIC_TURNSTILE_SITE_KEY=.*#NEXT_PUBLIC_TURNSTILE_SITE_KEY=1x00000000000000000000AA#" \
               -e "s#^TURNSTILE_SECRET_KEY=.*#TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA#" \
+              -e "s#^TELEGRAM_BOT_TOKEN=.*#TELEGRAM_BOT_TOKEN=e2e-token#" \
+              -e "s#^TELEGRAM_BOT_USERNAME=.*#TELEGRAM_BOT_USERNAME=e2e_test_bot#" \
+              -e "s#^CRON_SECRET=.*#CRON_SECRET=e2e-cron-secret#" \
+              -e "s#^TELEGRAM_API_BASE=.*#TELEGRAM_API_BASE=http://127.0.0.1:3999#" \
               .env.example > .env.local
       - run: npm ci
       - run: npx playwright install --with-deps chromium
