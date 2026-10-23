@@ -1,4 +1,6 @@
 import { isIP } from "node:net";
+import { after } from "next/server";
+import { dispatchIiko, freeInIikoNow } from "@/lib/iiko/venue";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyTurnstile } from "@/lib/turnstile";
 import {
@@ -58,22 +60,38 @@ export async function POST(request: Request) {
     return reply({ ok: false, error: "captcha_failed" }, 400);
   }
 
-  const { data, error } = await createAdminClient().rpc(
-    "create_public_booking",
-    {
-      p_resource_id: input.resourceId,
-      p_starts_at: input.startsAt,
-      p_duration_min: input.durationMin,
-      p_phone: input.phone,
-      p_name: input.name,
-      p_guests: input.guests ?? undefined,
-      p_comment: input.comment || undefined,
-      p_ip: ip ?? undefined,
-      p_max_active_per_phone: limit("PUBLIC_BOOKING_MAX_ACTIVE_PER_PHONE", 2),
-      p_max_active_per_ip: limit("PUBLIC_BOOKING_MAX_ACTIVE_PER_IP", 5),
-      p_package_id: input.packageId ?? undefined,
-    },
-  );
+  // Заведение с iiko: стол могли занять бронью прямо в кассе (этап 9.5).
+  const db = createAdminClient();
+  const { data: resource } = await db
+    .from("resources")
+    .select("venue_id")
+    .eq("id", input.resourceId)
+    .maybeSingle();
+  if (
+    resource &&
+    !(await freeInIikoNow(
+      resource.venue_id,
+      input.resourceId,
+      new Date(input.startsAt),
+      input.durationMin,
+    ))
+  ) {
+    return reply({ ok: false, error: "slot_unavailable" }, 409);
+  }
+
+  const { data, error } = await db.rpc("create_public_booking", {
+    p_resource_id: input.resourceId,
+    p_starts_at: input.startsAt,
+    p_duration_min: input.durationMin,
+    p_phone: input.phone,
+    p_name: input.name,
+    p_guests: input.guests ?? undefined,
+    p_comment: input.comment || undefined,
+    p_ip: ip ?? undefined,
+    p_max_active_per_phone: limit("PUBLIC_BOOKING_MAX_ACTIVE_PER_PHONE", 2),
+    p_max_active_per_ip: limit("PUBLIC_BOOKING_MAX_ACTIVE_PER_IP", 5),
+    p_package_id: input.packageId ?? undefined,
+  });
   if (error) {
     const known = KNOWN_ERRORS.has(error.message);
     const status = error.message.startsWith("limit_")
@@ -88,6 +106,8 @@ export async function POST(request: Request) {
       status,
     );
   }
+  // Бронь уходит в iiko сразу после ответа гостю; не вышло — повторит cron.
+  after(() => dispatchIiko(createAdminClient()));
   const booking = data as {
     id: string;
     manage_token: string;

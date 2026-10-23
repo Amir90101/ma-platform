@@ -142,36 +142,43 @@ async function VenueHome({
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          tone="primary"
-          icon={<Map />}
-          label={tO("tables")}
-          value={tO("freeOf", { free, total: resources ?? 0 })}
-          hint={tO("busyNow", { count: busy ?? 0 })}
-          footer={
-            <Link
-              href={`${base}/hall`}
-              className="text-primary-foreground inline-flex items-center gap-1 text-sm font-medium hover:underline"
-            >
-              {tO("openHall")}
-              <ArrowRight aria-hidden="true" className="size-4" />
-            </Link>
-          }
-        />
-        <StatCard
-          icon={<Wallet />}
-          label={tO("shift")}
-          value={shift ? tO("shiftOpen") : tO("shiftClosed")}
-          hint={
-            shift
-              ? tO("shiftSince", {
-                  time: time(shift.opened_at),
-                  cash: shift.opening_cash.toLocaleString("ru-RU"),
-                })
-              : tO("shiftHint")
-          }
-          footer={<CardLink href={`${base}/hall`}>{tO("toShift")}</CardLink>}
-        />
+        {/* Касса и карта сеансов — в своей системе заведения (iiko). */}
+        {!venue.booking_only && (
+          <>
+            <StatCard
+              tone="primary"
+              icon={<Map />}
+              label={tO("tables")}
+              value={tO("freeOf", { free, total: resources ?? 0 })}
+              hint={tO("busyNow", { count: busy ?? 0 })}
+              footer={
+                <Link
+                  href={`${base}/hall`}
+                  className="text-primary-foreground inline-flex items-center gap-1 text-sm font-medium hover:underline"
+                >
+                  {tO("openHall")}
+                  <ArrowRight aria-hidden="true" className="size-4" />
+                </Link>
+              }
+            />
+            <StatCard
+              icon={<Wallet />}
+              label={tO("shift")}
+              value={shift ? tO("shiftOpen") : tO("shiftClosed")}
+              hint={
+                shift
+                  ? tO("shiftSince", {
+                      time: time(shift.opened_at),
+                      cash: shift.opening_cash.toLocaleString("ru-RU"),
+                    })
+                  : tO("shiftHint")
+              }
+              footer={
+                <CardLink href={`${base}/hall`}>{tO("toShift")}</CardLink>
+              }
+            />
+          </>
+        )}
         <StatCard
           icon={<CalendarClock />}
           label={tO("bookingsToday")}
@@ -188,7 +195,7 @@ async function VenueHome({
             <CardLink href={`${base}/bookings`}>{tO("toBookings")}</CardLink>
           }
         />
-        {isOwner && (
+        {isOwner && !venue.booking_only && (
           <StatCard
             icon={<Banknote />}
             label={tO("revenueToday")}

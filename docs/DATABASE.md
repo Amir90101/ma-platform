@@ -302,6 +302,14 @@ Telegram-бот (этап 9.4), устройство — `docs/ARCHITECTURE.md`,
 - `telegram_state` — одна строка: `update_offset` для `getUpdates`.
 - `notification_outbox` — очередь: `kind` (`booking_created`, `booking_cancelled`, `booking_no_show`, `shift_closed`), `payload jsonb` с данными для текста, `claimed_at`, `attempts`, `sent_at`. Пишут триггеры `bookings_notify`, `shifts_notify` и только для заведений с чатами. Закрыта для пользователей, читает сервер ключом `service_role`.
 
+### venue_integrations, integration_outbox
+
+Интеграция с iiko (этап 9.5), устройство — `docs/ARCHITECTURE.md`, раздел «Интеграция с iiko».
+
+- `venue_integrations` — одна строка на заведение: `provider = 'iiko'`, `api_login_secret_id` (секрет Vault), `organization_id`, `terminal_group_id`, `section_ids uuid[]`, `enabled`, `synced_at`, `last_error`. Читает владелец, пишут только RPC.
+- `integration_outbox` — очередь отправки броней в iiko: `booking_id`, `action` (`create`, `cancel`), `claimed_at`, `attempts` (до 10), `done_at`, `last_error`. Пишет триггер `bookings_to_iiko`, только при включённом обмене. Закрыта для пользователей.
+- В `venues` — `booking_only boolean` (режим «только онлайн-бронь»), в `resources` — `iiko_table_id uuid` (уникален в заведении), в `bookings` — `iiko_status` (`pending`, `sent`, `error`, `cancelled`) и `iiko_error`.
+
 ## Ограничения, которые нельзя оставлять на код
 
 ```sql
@@ -358,6 +366,11 @@ RPC для таблиц «только через RPC» объявлены `secu
 | `create_telegram_link_code(venue_id)` | Владелец | Одноразовый код подключения чата на 30 минут |
 | `telegram_link_chat(code, chat_id, title)` | Только сервер (`service_role`) | Подключает чат по коду, код гасится; возвращает название заведения или `null` |
 | `telegram_claim_outbox(limit)` | Только сервер (`service_role`) | Порция неотправленных уведомлений, `for update skip locked`; взятая строка не отдаётся повторно 2 минуты, после пяти попыток — больше никогда |
+| `set_iiko_api_login(venue_id, api_login)` | Владелец | Ключ iiko в Vault: создаёт или заменяет секрет |
+| `iiko_api_login(venue_id)` | Только сервер (`service_role`) | Расшифрованный ключ iiko заведения |
+| `save_iiko_settings(venue_id, organization_id, terminal_group_id, section_ids, enabled)` | Владелец | Выбор организации, кассы и залов; включить без них — `iiko_settings_incomplete`, без ключа — `api_login_required` |
+| `sync_iiko_tables(venue_id, tables)` | Владелец | Столы iiko → места зала «iiko» (`[{iiko_table_id, name, capacity, kind, x, y, w, h}]`), пропавшие выключаются; возвращает число столов |
+| `iiko_claim_outbox(limit)` | Только сервер (`service_role`) | Порция очереди отправки в iiko, как `telegram_claim_outbox` |
 | `platform_venues()` | Владелец платформы | Все заведения: профиль, организация, email владельца, публикация и готовность настройки (часы, активные места и тарифы, фото, администраторы). Без денег, сеансов, броней и гостей. Остальным `42501` |
 | `platform_create_venue(owner_id, org_name, venue)` | Владелец платформы | Заведение владельцу `owner_id`: в его первую организацию или в новую (`org_name`, иначе название заведения). `venue` — jsonb с полями профиля. Занятый slug — `23505`, не владелец платформы — `42501` |
 | `get_org_staff(org_id)` | Владелец | Сотрудники организации с email и именем из `auth.users`; остальным пустой результат |

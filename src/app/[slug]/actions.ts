@@ -1,5 +1,6 @@
 "use server";
 
+import { filterByIiko } from "@/lib/iiko/venue";
 import { createPublicClient } from "@/lib/supabase/public";
 import { isDateString } from "@/lib/venue-time";
 
@@ -20,11 +21,11 @@ export async function getPublicAvailability(
     p_duration_min: durationMin,
   });
   if (error) return { ok: false };
-  return {
-    ok: true,
-    slots: (data ?? []).map((s) => ({
-      resourceId: s.resource_id,
-      startsAt: s.starts_at,
-    })),
-  };
+  const slots = (data ?? []).map((s) => ({
+    resourceId: s.resource_id,
+    startsAt: s.starts_at,
+  }));
+  // Заведение с iiko: убираем окна, занятые бронями в кассе (этап 9.5).
+  const free = await filterByIiko(venueId, date, durationMin, slots);
+  return free ? { ok: true, slots: free } : { ok: false };
 }

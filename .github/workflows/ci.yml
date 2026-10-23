@@ -55,6 +55,7 @@ jobs:
               -e "s#^TELEGRAM_BOT_USERNAME=.*#TELEGRAM_BOT_USERNAME=e2e_test_bot#" \
               -e "s#^CRON_SECRET=.*#CRON_SECRET=e2e-cron-secret#" \
               -e "s#^TELEGRAM_API_BASE=.*#TELEGRAM_API_BASE=http://127.0.0.1:3999#" \
+              -e "s#^IIKO_API_BASE=.*#IIKO_API_BASE=http://127.0.0.1:3998#" \
               .env.example > .env.local
       - run: npm ci
       - run: npx playwright install --with-deps chromium
