@@ -49,9 +49,6 @@ export function LoginForm() {
         >
           {t("forgotLink")}
         </Link>
-        <Link href="/register" className="hover:underline">
-          {t("registerLink")}
-        </Link>
       </div>
     </form>
   );

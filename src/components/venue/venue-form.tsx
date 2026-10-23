@@ -53,8 +53,8 @@ type Props = {
     formData: FormData,
   ) => Promise<VenueFormState>;
   mode: "create" | "edit";
-  // Первое заведение: заодно спрашиваем название организации.
-  askOrgName?: boolean;
+  // Владелец платформы подключает заведение: email владельца и организация.
+  askOwner?: boolean;
   initial?: VenueFormValues;
   siteUrl: string;
 };
@@ -62,7 +62,7 @@ type Props = {
 export function VenueForm({
   action,
   mode,
-  askOrgName,
+  askOwner,
   initial = EMPTY,
   siteUrl,
 }: Props) {
@@ -87,11 +87,29 @@ export function VenueForm({
         startTransition(() => formAction(formData));
       }}
     >
-      {askOrgName && (
-        <Field name="orgName" label={t("orgName")} error={errors.orgName}>
-          <Input id="orgName" name="orgName" autoComplete="organization" />
-          <p className="text-muted-foreground text-sm">{t("orgNameHint")}</p>
-        </Field>
+      {askOwner && (
+        <>
+          <Field
+            name="ownerEmail"
+            label={t("ownerEmail")}
+            error={errors.ownerEmail}
+          >
+            <Input
+              id="ownerEmail"
+              name="ownerEmail"
+              type="email"
+              autoComplete="off"
+              aria-invalid={errors.ownerEmail ? true : undefined}
+            />
+            <p className="text-muted-foreground text-sm">
+              {t("ownerEmailHint")}
+            </p>
+          </Field>
+          <Field name="orgName" label={t("orgName")} error={errors.orgName}>
+            <Input id="orgName" name="orgName" autoComplete="off" />
+            <p className="text-muted-foreground text-sm">{t("orgNameHint")}</p>
+          </Field>
+        </>
       )}
 
       <Field name="type" label={t("type")} error={errors.type}>

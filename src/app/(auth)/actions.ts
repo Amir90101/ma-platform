@@ -9,7 +9,6 @@ import {
   fieldErrors,
   forgotPasswordSchema,
   loginSchema,
-  registerSchema,
   resetPasswordSchema,
   safeNextPath,
 } from "@/lib/validation/auth";
@@ -68,36 +67,6 @@ export async function login(
   if (error) return { error: authErrorKey(error), values };
 
   redirect(safeNextPath(formData.get("next")));
-}
-
-export async function register(
-  _prev: AuthFormState,
-  formData: FormData,
-): Promise<AuthFormState> {
-  const parsed = registerSchema.safeParse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    password: formData.get("password"),
-  });
-  const values = textValues(formData);
-  if (!parsed.success)
-    return { fieldErrors: fieldErrors(parsed.error), values };
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email: parsed.data.email,
-    password: parsed.data.password,
-    options: {
-      data: { full_name: parsed.data.fullName },
-      emailRedirectTo: `${siteUrl()}/auth/confirm?next=/app`,
-    },
-  });
-  if (error) return { error: authErrorKey(error), values };
-
-  // Если подтверждение почты включено, сессии ещё нет: просим открыть письмо.
-  if (!data.session) return { done: true, values };
-
-  redirect("/app");
 }
 
 export async function forgotPassword(

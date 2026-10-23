@@ -1,8 +1,11 @@
 import type { Page } from "@playwright/test";
+import type { Database } from "../../src/lib/supabase/types";
+import { admin } from "./fixtures";
 
 // Демо-пользователи из supabase/seed.sql.
 export const OWNER = { email: "owner@demo.local", password: "demo12345" };
 export const ADMIN = { email: "admin@demo.local", password: "demo12345" };
+export const PLATFORM = { email: "platform@demo.local", password: "demo12345" };
 export const DEMO_VENUE_ID = "aaaaaaaa-1111-0000-0000-000000000001";
 
 export async function login(page: Page, email: string, password: string) {
@@ -20,12 +23,20 @@ export function uniqueSuffix() {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Новый владелец без заведений. Регистрация закрыта (этап 9.2): пользователя
+// создаём ключом service_role, как это делает приглашение, и входим.
+export const OWNER_PASSWORD = "test-password-1";
+
 export async function registerOwner(page: Page, email: string) {
-  await page.goto("/register");
-  await page.getByLabel("Имя").fill("Тестовый Владелец");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel(/Пароль, не меньше/).fill("test-password-1");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
+  const { error } = await admin.auth.admin.createUser({
+    email,
+    password: OWNER_PASSWORD,
+    email_confirm: true,
+    user_metadata: { full_name: "Тестовый Владелец" },
+  });
+  if (error) throw error;
+  await page.goto("/login");
+  await login(page, email, OWNER_PASSWORD);
 }
 
 const MAILPIT = "http://127.0.0.1:54324";
@@ -48,20 +59,41 @@ export async function lastEmailText(email: string): Promise<string> {
   throw new Error(`Письмо на ${email} не пришло`);
 }
 
-// Новый владелец с заведением; возвращает id заведения.
+// Новый владелец с заведением; возвращает id заведения. Заведения подключает
+// владелец платформы (этап 9.2), здесь — сразу ключом service_role.
 export async function ownerWithVenue(
   page: Page,
-  type = "Бильярд",
+  type: Database["public"]["Enums"]["venue_type"] = "billiards",
 ): Promise<string> {
-  await registerOwner(page, uniqueEmail("owner"));
+  const email = uniqueEmail("owner");
+  await registerOwner(page, email);
   await page.waitForURL("/app");
-  await page.goto("/app/new");
-  await page.getByLabel("Название организации").fill("ТОО Тест");
-  await page.getByLabel("Тип заведения").selectOption({ label: type });
-  await page.getByLabel("Название", { exact: true }).fill("Тестовый клуб");
-  await page.getByLabel("Адрес страницы").fill(`club-${uniqueSuffix()}`);
-  await page.getByLabel("Город").fill("Алматы");
-  await page.getByRole("button", { name: "Создать заведение" }).click();
-  await page.waitForURL(/\/app\/[0-9a-f-]{36}\/settings$/);
-  return page.url().split("/")[4];
+  const { data: user } = await admin.rpc("user_id_by_email", {
+    p_email: email,
+  });
+  const { data: org, error: orgError } = await admin
+    .from("organizations")
+    .insert({ name: "ТОО Тест", owner_id: user! })
+    .select("id")
+    .single();
+  if (orgError) throw orgError;
+  const { data: venue, error } = await admin
+    .from("venues")
+    .insert({
+      org_id: org.id,
+      type,
+      name: "Тестовый клуб",
+      slug: `club-${uniqueSuffix()}`,
+      city: "Алматы",
+      working_hours: [1, 2, 3, 4, 5, 6, 7].map((weekday) => ({
+        weekday,
+        open: "10:00",
+        close: "22:00",
+      })),
+    })
+    .select("id")
+    .single();
+  if (error) throw error;
+  await page.goto(`/app/${venue.id}/settings`);
+  return venue.id;
 }

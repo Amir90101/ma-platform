@@ -2,13 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 // Страницы входа: вошедшего пользователя с них отправляем в админку.
-const AUTH_PAGES = ["/login", "/register", "/forgot-password"];
+const AUTH_PAGES = ["/login", "/forgot-password"];
 
 export async function proxy(request: NextRequest) {
   const { response, userId } = await updateSession(request);
   const { pathname, search } = request.nextUrl;
 
-  const isAdminArea = pathname === "/app" || pathname.startsWith("/app/");
+  // /app — заведения, /admin — владелец платформы: только после входа.
+  const isAdminArea = ["/app", "/admin"].some(
+    (area) => pathname === area || pathname.startsWith(`${area}/`),
+  );
   if (isAdminArea && !userId) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
