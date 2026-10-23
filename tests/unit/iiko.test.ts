@@ -22,8 +22,7 @@ describe("freeInIiko", () => {
       durationInMinutes: 120,
     },
   ];
-  const at = (hhmm: string) =>
-    fromIikoTime(`2026-10-24 ${hhmm}:00.000`, TZ);
+  const at = (hhmm: string) => fromIikoTime(`2026-10-24 ${hhmm}:00.000`, TZ);
 
   it("пересечение с резервом на тот же стол — занято", () => {
     expect(freeInIiko(reserves, "t1", at("20:00"), 60, 0, TZ)).toBe(false);
