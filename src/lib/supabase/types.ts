@@ -45,9 +45,9 @@ isOneToOne: false
                   ]
                 },"bookings": {
                   Row: {
-                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"created_ip": unknown,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"manage_token": string,"package_id": string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string
+                    "blocked_until": string,"cancel_reason": string | null,"cancelled_at": string | null,"cancelled_by_guest": boolean,"comment": string | null,"created_at": string,"created_by": string | null,"created_ip": unknown,"customer_id": string,"ends_at": string,"guests": number | null,"id": string,"manage_token": string,"package_id": string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status": Database["public"]['Enums']["booking_status"],"venue_id": string,"booking_notification_payload": Json | null
                   }
-                  ComputedFields: never
+                  ComputedFields: "booking_notification_payload"
                   Insert: {
                     "blocked_until": string,"cancel_reason"?: string | null,"cancelled_at"?: string | null,"cancelled_by_guest"?: boolean,"comment"?: string | null,"created_at"?: string,"created_by"?: string | null,"created_ip"?: unknown,"customer_id": string,"ends_at": string,"guests"?: number | null,"id"?: string,"manage_token"?: string,"package_id"?: string | null,"resource_id": string,"source": Database["public"]['Enums']["booking_source"],"starts_at": string,"status"?: Database["public"]['Enums']["booking_status"],"venue_id": string
                   }
@@ -158,6 +158,26 @@ isOneToOne: false
       columns: ["org_id"]
 isOneToOne: false
       referencedRelation: "organizations"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"notification_outbox": {
+                  Row: {
+                    "attempts": number,"claimed_at": string | null,"created_at": string,"id": number,"kind": string,"payload": NonNullable<Json>,"sent_at": string | null,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "attempts"?: number,"claimed_at"?: string | null,"created_at"?: string,"id"?: never,"kind": string,"payload": NonNullable<Json>,"sent_at"?: string | null,"venue_id": string
+                  }
+                  Update: {
+                    "attempts"?: number,"claimed_at"?: string | null,"created_at"?: string,"id"?: never,"kind"?: string,"payload"?: NonNullable<Json>,"sent_at"?: string | null,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notification_outbox_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
       referencedColumns: ["id"]
     }
                   ]
@@ -403,6 +423,60 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"telegram_chats": {
+                  Row: {
+                    "chat_id": number,"created_at": string,"id": string,"title": string | null,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "chat_id": number,"created_at"?: string,"id"?: string,"title"?: string | null,"venue_id": string
+                  }
+                  Update: {
+                    "chat_id"?: number,"created_at"?: string,"id"?: string,"title"?: string | null,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "telegram_chats_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"telegram_link_codes": {
+                  Row: {
+                    "code": string,"created_by": string,"expires_at": string,"venue_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "code": string,"created_by": string,"expires_at": string,"venue_id": string
+                  }
+                  Update: {
+                    "code"?: string,"created_by"?: string,"expires_at"?: string,"venue_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "telegram_link_codes_venue_id_fkey"
+      columns: ["venue_id"]
+isOneToOne: false
+      referencedRelation: "venues"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"telegram_state": {
+                  Row: {
+                    "id": number,"update_offset": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: number,"update_offset"?: number
+                  }
+                  Update: {
+                    "id"?: number,"update_offset"?: number
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"venue_photos": {
                   Row: {
                     "created_at": string,"id": string,"sort": number,"storage_path": string,"venue_id": string
@@ -461,6 +535,9 @@ isOneToOne: false
 "booking_conflict":
 { Args: { "p_blocked_until": string,"p_resource_id": string,"p_starts_at": string }; Returns: Json
                            },
+"booking_notification_payload":
+{ Args: { "p_booking": Omit<Database["public"]['Tables']["bookings"]['Row'], Database["public"]['Tables']["bookings"]['ComputedFields']> }; Returns: Json
+                           },
 "calc_play_amount":
 { Args: { "p_at"?: string,"p_package_id"?: string,"p_segments": Json,"p_venue_id": string }; Returns: Json
                            },
@@ -515,6 +592,12 @@ isOneToOne: false
                            },
 "create_public_booking":
 { Args: { "p_comment"?: string,"p_duration_min": number,"p_guests"?: number,"p_ip"?: unknown,"p_max_active_per_ip"?: number,"p_max_active_per_phone"?: number,"p_name": string,"p_package_id"?: string,"p_phone": string,"p_resource_id": string,"p_starts_at": string }; Returns: Json
+                           },
+"create_telegram_link_code":
+{ Args: { "p_venue_id": string }; Returns: string
+                           },
+"enqueue_notification":
+{ Args: { "p_kind": string,"p_payload": Json,"p_venue_id": string }; Returns: undefined
                            },
 "find_tariff":
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_local": string,"p_venue_id": string }; Returns: {
@@ -655,6 +738,29 @@ isOneToOne: false
 { Args: { "p_kind": Database["public"]['Enums']["resource_kind"],"p_venue_id": string }; Returns: {
               "minute": number,"price_per_hour": number,"tariff_id": string,"tariff_name": string,"weekday": number
             }[]
+                           },
+"telegram_claim_outbox":
+{ Args: { "p_limit": number }; Returns: {
+              "attempts": number,
+"claimed_at": string | null,
+"created_at": string,
+"id": number,
+"kind": string,
+"payload": NonNullable<Json>,
+"sent_at": string | null,
+"venue_id": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "notification_outbox"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
+"telegram_dispatch_ping":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
+"telegram_link_chat":
+{ Args: { "p_chat_id": number,"p_code": string,"p_title": string }; Returns: string
                            },
 "transfer_session":
 { Args: { "p_resource_id": string,"p_session_id": string }; Returns: undefined
