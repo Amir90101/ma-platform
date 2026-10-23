@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   fieldErrors,
   loginSchema,
-  registerSchema,
   resetPasswordSchema,
   safeNextPath,
 } from "@/lib/validation/auth";
@@ -23,26 +22,6 @@ describe("loginSchema", () => {
       email: "emailInvalid",
       password: "passwordRequired",
     });
-  });
-});
-
-describe("registerSchema", () => {
-  it("требует пароль не короче 8 символов", () => {
-    const r = registerSchema.safeParse({
-      fullName: "Амир",
-      email: "a@b.kz",
-      password: "1234567",
-    });
-    expect(fieldErrors(r.error!)).toEqual({ password: "passwordTooShort" });
-  });
-
-  it("требует имя", () => {
-    const r = registerSchema.safeParse({
-      fullName: "  ",
-      email: "a@b.kz",
-      password: "12345678",
-    });
-    expect(fieldErrors(r.error!)).toEqual({ fullName: "nameRequired" });
   });
 });
 

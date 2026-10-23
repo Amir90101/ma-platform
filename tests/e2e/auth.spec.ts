@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
-import { lastEmailText, login, OWNER, uniqueEmail } from "./helpers";
+import {
+  lastEmailText,
+  login,
+  OWNER,
+  OWNER_PASSWORD,
+  registerOwner,
+  uniqueEmail,
+} from "./helpers";
 
 test("без входа /app ведёт на страницу входа и возвращает обратно после входа", async ({
   page,
@@ -44,43 +51,17 @@ test("вошедшего пользователя страница входа о
   await expect(page).toHaveURL("/app");
 });
 
-test("регистрация нового владельца сразу открывает админку", async ({
-  page,
-}) => {
-  const email = uniqueEmail("owner");
+// Этап 9.2: регистрация закрыта, заведения подключает владелец платформы.
+test("регистрации нет: /register ведёт на вход", async ({ page }) => {
   await page.goto("/register");
-
-  await page.getByLabel("Имя").fill("Тестовый Владелец");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel(/Пароль, не меньше/).fill("short");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  await expect(page.getByText("Пароль слишком короткий")).toBeVisible();
-
-  await page.getByLabel(/Пароль, не меньше/).fill("test-password-1");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  await expect(page).toHaveURL("/app");
-  await expect(page.getByTestId("current-user")).toContainText(email);
-});
-
-test("занятый email при регистрации даёт понятную ошибку", async ({ page }) => {
-  await page.goto("/register");
-  await page.getByLabel("Имя").fill("Кто-то");
-  await page.getByLabel("Email").fill(OWNER.email);
-  await page.getByLabel(/Пароль, не меньше/).fill("test-password-1");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
-  await expect(page.locator("form").getByRole("alert")).toContainText(
-    "уже зарегистрирован",
-  );
+  await expect(page).toHaveURL("/login");
+  await expect(page.getByRole("link", { name: "Регистрация" })).toHaveCount(0);
 });
 
 test("сброс пароля по ссылке из письма", async ({ page }) => {
   // Отдельный пользователь, чтобы не менять пароль демо-владельцу.
   const email = uniqueEmail("reset");
-  await page.goto("/register");
-  await page.getByLabel("Имя").fill("Сброс Пароля");
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel(/Пароль, не меньше/).fill("old-password-1");
-  await page.getByRole("button", { name: "Зарегистрироваться" }).click();
+  await registerOwner(page, email);
   await expect(page).toHaveURL("/app");
   await page.getByRole("button", { name: "Выйти" }).click();
   await expect(page).toHaveURL("/login");
@@ -103,7 +84,7 @@ test("сброс пароля по ссылке из письма", async ({ pag
   await expect(page).toHaveURL("/app");
 
   await page.getByRole("button", { name: "Выйти" }).click();
-  await login(page, email, "old-password-1");
+  await login(page, email, OWNER_PASSWORD);
   await expect(page.locator("form").getByRole("alert")).toHaveText(
     "Неверный email или пароль",
   );

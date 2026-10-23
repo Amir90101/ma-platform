@@ -2,6 +2,7 @@
 --
 -- Демо Бильярд (demo-billiards): owner@demo.local — владелец, admin@demo.local — администратор.
 -- Демо PS-клуб (demo-ps-club): owner2@demo.local — владелец другой организации.
+-- platform@demo.local — владелец платформы: подключает заведения, в организациях не состоит.
 -- Второе заведение нужно тестам RLS: пользователи одного заведения не видят другое.
 --
 -- id фиксированные, на них ссылаются тесты в supabase/tests.
@@ -22,7 +23,8 @@ select
 from (values
   ('11111111-1111-1111-1111-111111111111'::uuid, 'owner@demo.local', 'Демо Владелец'),
   ('22222222-2222-2222-2222-222222222222'::uuid, 'admin@demo.local', 'Демо Администратор'),
-  ('33333333-3333-3333-3333-333333333333'::uuid, 'owner2@demo.local', 'Второй Владелец')
+  ('33333333-3333-3333-3333-333333333333'::uuid, 'owner2@demo.local', 'Второй Владелец'),
+  ('99999999-9999-9999-9999-999999999999'::uuid, 'platform@demo.local', 'Владелец платформы')
 ) as u (id, email, full_name);
 
 insert into auth.identities (
@@ -34,6 +36,9 @@ select
   now(), now(), now()
 from auth.users u
 where u.email like '%@demo.local';
+
+insert into public.platform_admins (user_id) values
+  ('99999999-9999-9999-9999-999999999999');
 
 -- Организации и участники ---------------------------------------------------
 -- Строку владельца в members добавляет триггер organizations_add_owner_as_member.

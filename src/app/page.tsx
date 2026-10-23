@@ -47,13 +47,7 @@ export default async function Home() {
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-4 px-4">
           <Logo name={tCommon("productName")} />
           <nav className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className={buttonVariants({ variant: "ghost" })}
-            >
-              {t("login")}
-            </Link>
-            <Link href="/register" className={buttonVariants()}>
+            <Link href="/login" className={buttonVariants()}>
               {t("start")}
             </Link>
           </nav>
@@ -74,10 +68,7 @@ export default async function Home() {
                 {t("subtitle")}
               </p>
               <div className="flex flex-wrap gap-3">
-                <Link
-                  href="/register"
-                  className={buttonVariants({ size: "lg" })}
-                >
+                <Link href="/login" className={buttonVariants({ size: "lg" })}>
                   {t("start")}
                 </Link>
                 <Link
@@ -189,7 +180,7 @@ export default async function Home() {
           <div className="bg-sidebar mx-auto grid w-full max-w-6xl justify-items-start gap-4 rounded-3xl p-8 text-white sm:p-12">
             <h2 className="max-w-xl text-3xl font-bold">{t("ctaTitle")}</h2>
             <p className="max-w-xl text-white/70">{t("ctaText")}</p>
-            <Link href="/register" className={buttonVariants({ size: "lg" })}>
+            <Link href="/login" className={buttonVariants({ size: "lg" })}>
               {t("start")}
             </Link>
           </div>

@@ -125,10 +125,11 @@ select throws_ok(
   '42501', null,
   'владелец не создаёт заведение в чужой организации'
 );
-select lives_ok(
+select throws_ok(
   $$insert into public.venues (org_id, type, name, slug, city)
     values ('aaaaaaaa-0000-0000-0000-000000000001', 'karaoke', 'Второе', 'demo-karaoke', 'Алматы')$$,
-  'владелец создаёт второе заведение в своей организации'
+  '42501', null,
+  'владелец не создаёт заведения сам: их подключает владелец платформы (9.2)'
 );
 select is_empty(
   $$delete from public.members
@@ -164,7 +165,7 @@ select is_empty(
 );
 reset role;
 
--- Новый пользователь создаёт организацию ------------------------------------
+-- Новый пользователь не создаёт организацию: регистрация закрыта (9.2) ----
 
 insert into auth.users (id, email, aud, role)
 values ('44444444-4444-4444-4444-444444444444', 'new@demo.local', 'authenticated', 'authenticated');
@@ -172,10 +173,11 @@ values ('44444444-4444-4444-4444-444444444444', 'new@demo.local', 'authenticated
 select pg_temp.login('44444444-4444-4444-4444-444444444444');
 
 select is_empty('select 1 from public.venues', 'новый пользователь не видит ни одного заведения');
-select lives_ok(
+select throws_ok(
   $$insert into public.organizations (id, name, owner_id)
     values ('cccccccc-0000-0000-0000-000000000001', 'Новый бизнес', '44444444-4444-4444-4444-444444444444')$$,
-  'новый пользователь создаёт свою организацию'
+  '42501', null,
+  'новый пользователь не создаёт организацию'
 );
 select throws_ok(
   $$insert into public.organizations (name, owner_id)
@@ -183,10 +185,11 @@ select throws_ok(
   '42501', null,
   'нельзя создать организацию на чужое имя'
 );
-select lives_ok(
+select throws_ok(
   $$insert into public.venues (org_id, type, name, slug, city)
-    values ('cccccccc-0000-0000-0000-000000000001', 'sauna', 'Новая сауна', 'new-sauna', 'Шымкент')$$,
-  'и сразу создаёт в ней заведение'
+    values ('aaaaaaaa-0000-0000-0000-000000000001', 'sauna', 'Новая сауна', 'new-sauna', 'Шымкент')$$,
+  '42501', null,
+  'и не создаёт заведение'
 );
 reset role;
 

@@ -227,6 +227,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"platform_admins": {
+                  Row: {
+                    "created_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"resources": {
                   Row: {
                     "bookable_online": boolean,"capacity": number | null,"created_at": string,"h": number,"hall_id": string,"id": string,"is_active": boolean,"kind": Database["public"]['Enums']["resource_kind"],"name": string,"rotation": number,"shape": string,"venue_id": string,"w": number,"x": number,"y": number
@@ -558,6 +572,9 @@ isOneToOne: false
 "is_org_owner":
 { Args: { "p_org_id": string }; Returns: boolean
                            },
+"is_platform_admin":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "is_venue_member":
 { Args: { "p_venue_id": string }; Returns: boolean
                            },
@@ -607,6 +624,14 @@ isOneToOne: false
                            },
 "pause_session":
 { Args: { "p_session_id": string }; Returns: undefined
+                           },
+"platform_create_venue":
+{ Args: { "p_org_name": string,"p_owner_id": string,"p_venue": Json }; Returns: string
+                           },
+"platform_venues":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "city": string,"created_at": string,"has_hours": boolean,"id": string,"is_published": boolean,"name": string,"org_name": string,"owner_email": string,"photos": number,"resources": number,"slug": string,"staff": number,"tariffs": number,"type": Database["public"]['Enums']["venue_type"]
+            }[]
                            },
 "remove_session_item":
 { Args: { "p_item_id": string }; Returns: undefined
