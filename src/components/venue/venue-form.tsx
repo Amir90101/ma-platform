@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  isAllDay,
   slugify,
   VENUE_TYPES,
   type VenueType,
@@ -210,30 +211,54 @@ function WorkingHoursField({
   const tErrors = useTranslations("Venue.errors");
   const [closed, setClosed] = useState(
     () =>
-      new Set(
+      new Set<number>(
         WEEKDAYS.filter((d) => !initial.some((day) => day.weekday === d)),
       ),
   );
+  const [allDay, setAllDay] = useState(
+    () => new Set<number>(initial.filter(isAllDay).map((day) => day.weekday)),
+  );
+  const everyDay = WEEKDAYS.every((d) => allDay.has(d) && !closed.has(d));
+  const toggle = (set: Set<number>, d: number, on: boolean) => {
+    const next = new Set(set);
+    if (on) next.add(d);
+    else next.delete(d);
+    return next;
+  };
 
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-1 text-sm font-medium">{t("workingHours")}</legend>
       <p className="text-muted-foreground text-sm">{t("workingHoursHint")}</p>
+      <label className="bg-muted flex w-fit items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium">
+        <input
+          type="checkbox"
+          checked={everyDay}
+          onChange={(e) => {
+            const on = e.target.checked;
+            setAllDay(new Set<number>(on ? WEEKDAYS : []));
+            if (on) setClosed(new Set());
+          }}
+          className="accent-primary size-4"
+        />
+        {t("allDayEveryDay")}
+      </label>
       {WEEKDAYS.map((d) => {
         const day = initial.find((x) => x.weekday === d);
         const dayName = t(`weekdays.${d}`);
         const isClosed = closed.has(d);
+        const isAllDayOn = allDay.has(d) && !isClosed;
         const error = errors[`hours.${d}`];
         return (
           <div key={d} className="grid gap-1">
             {/* День, открытие – закрытие; «Выходной» справа или под полями на телефоне. */}
-            <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 sm:grid-cols-[1.75rem_9rem_auto_9rem_auto]">
+            <div className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-x-2 gap-y-1 sm:grid-cols-[1.75rem_9rem_auto_9rem_auto_auto]">
               <span className="text-sm font-medium">{dayName}</span>
               <Input
                 type="time"
                 name={`hours.${d}.open`}
-                defaultValue={day?.open ?? "10:00"}
-                disabled={isClosed}
+                defaultValue={day && !isAllDay(day) ? day.open : "10:00"}
+                disabled={isClosed || isAllDayOn}
                 aria-label={`${dayName}, ${t("open")}`}
                 aria-invalid={error ? true : undefined}
               />
@@ -241,26 +266,39 @@ function WorkingHoursField({
               <Input
                 type="time"
                 name={`hours.${d}.close`}
-                defaultValue={day?.close ?? "22:00"}
-                disabled={isClosed}
+                defaultValue={day && !isAllDay(day) ? day.close : "22:00"}
+                disabled={isClosed || isAllDayOn}
                 aria-label={`${dayName}, ${t("close")}`}
                 aria-invalid={error ? true : undefined}
               />
-              <label className="col-span-3 col-start-2 flex items-center gap-2 text-sm sm:col-span-1 sm:col-start-auto sm:ml-2">
-                <input
-                  type="checkbox"
-                  name={`hours.${d}.closed`}
-                  checked={isClosed}
-                  onChange={(e) => {
-                    const next = new Set(closed);
-                    if (e.target.checked) next.add(d);
-                    else next.delete(d);
-                    setClosed(next);
-                  }}
-                  className="size-4"
-                />
-                {t("dayOff")}
-              </label>
+              <div className="col-span-3 col-start-2 flex flex-wrap gap-x-4 gap-y-1 sm:col-span-2 sm:col-start-auto sm:ml-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name={`hours.${d}.allDay`}
+                    checked={isAllDayOn}
+                    disabled={isClosed}
+                    onChange={(e) =>
+                      setAllDay(toggle(allDay, d, e.target.checked))
+                    }
+                    className="accent-primary size-4"
+                    aria-label={`${dayName}, ${t("allDay")}`}
+                  />
+                  <span aria-hidden="true">{t("allDay")}</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name={`hours.${d}.closed`}
+                    checked={isClosed}
+                    onChange={(e) =>
+                      setClosed(toggle(closed, d, e.target.checked))
+                    }
+                    className="accent-primary size-4"
+                  />
+                  {t("dayOff")}
+                </label>
+              </div>
             </div>
             {error && (
               <p className="text-destructive text-sm">{tErrors(error)}</p>

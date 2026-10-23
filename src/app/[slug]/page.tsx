@@ -15,6 +15,7 @@ import {
 } from "@/lib/public-venue";
 import { formatWeekdays, hhmm } from "@/lib/schedule-format";
 import { siteUrl } from "@/lib/site-url";
+import { isAllDay } from "@/lib/validation/venue";
 import { isoWeekday, todayIn } from "@/lib/venue-time";
 
 export async function generateMetadata({
@@ -129,10 +130,12 @@ async function VenueContent({ params }: Pick<PageProps<"/[slug]">, "params">) {
               className="text-muted-foreground size-4"
             />
             {todayHours
-              ? t("todayHours", {
-                  from: hhmm(todayHours.open),
-                  to: hhmm(todayHours.close),
-                })
+              ? isAllDay(todayHours)
+                ? t("todayAllDay")
+                : t("todayHours", {
+                    from: hhmm(todayHours.open),
+                    to: hhmm(todayHours.close),
+                  })
               : t("todayClosed")}
           </p>
 
@@ -250,7 +253,9 @@ async function Hours({ venue }: { venue: PublicVenue }) {
               </dt>
               <dd className="tabular-nums">
                 {hours
-                  ? `${hhmm(hours.open)}–${hhmm(hours.close)}`
+                  ? isAllDay(hours)
+                    ? t("allDay")
+                    : `${hhmm(hours.open)}–${hhmm(hours.close)}`
                   : t("dayOff")}
               </dd>
             </div>

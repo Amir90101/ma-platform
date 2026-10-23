@@ -83,6 +83,16 @@ test("владелец создаёт организацию и заведени
   await page.reload();
   await expect(page.getByLabel("Город")).toHaveValue("Астана");
 
+  // Круглосуточно без выходных: время не вводится, после сохранения отмечено.
+  await page.getByLabel("Круглосуточно, без выходных").check();
+  await expect(page.getByLabel("Пн, Открытие")).toBeDisabled();
+  await expect(page.getByLabel("Вс, Круглосуточно")).toBeChecked();
+  await page.getByRole("button", { name: "Сохранить" }).click();
+  await expect(page.getByRole("status")).toHaveText("Изменения сохранены");
+  await page.reload();
+  await expect(page.getByLabel("Круглосуточно, без выходных")).toBeChecked();
+  await expect(page.getByLabel("Пн, Круглосуточно")).toBeChecked();
+
   // Фото удаляется.
   await page.getByRole("button", { name: "Удалить фото 1" }).click();
   await expect(page.getByTestId("venue-photo")).toHaveCount(0);
