@@ -7,6 +7,7 @@ import { Logo, LogoMark } from "@/components/app-shell/logo";
 import { BottomNav, SidebarNav } from "@/components/app-shell/venue-nav";
 import { navItems } from "@/lib/venue-nav";
 import { OnlineBookingAlerts } from "@/components/bookings/online-booking-alerts";
+import { ShiftStartGate } from "@/components/shift/shift-start-gate";
 import { getVenueAccess } from "@/lib/venue-access";
 
 // Каркас экранов заведения: боковая панель на компьютере, нижние вкладки на
@@ -34,6 +35,17 @@ async function VenueShell({
   const tVenue = await getTranslations("Venue");
   // Нет доступа — страница сама покажет «не найдено», навигации нет.
   const items = access ? navItems(access.isOwner) : [];
+  // Сотрудник работает только в открытой смене: вход открывает её, выход —
+  // закрывает (этап 9.3). Владельца это не касается.
+  const staff = access && !access.isOwner;
+  const { data: shift } = staff
+    ? await access.supabase
+        .from("shifts")
+        .select("id")
+        .eq("venue_id", venueId)
+        .is("closed_at", null)
+        .maybeSingle()
+    : { data: null };
 
   return (
     <div className="flex flex-1">
@@ -80,12 +92,20 @@ async function VenueShell({
             </Link>
             <span className="hidden lg:block" />
             <Suspense>
-              <CurrentUser />
+              <CurrentUser
+                shiftEndHref={
+                  staff && shift ? `/app/${venueId}/shift-end` : undefined
+                }
+              />
             </Suspense>
           </div>
         </header>
         <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 pt-6 pb-24 lg:px-8 lg:pt-8 lg:pb-12">
-          {children}
+          {staff && !shift ? (
+            <ShiftStartGate venueId={venueId} name={access.venue.name} />
+          ) : (
+            children
+          )}
         </main>
       </div>
 

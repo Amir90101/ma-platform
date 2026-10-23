@@ -35,12 +35,23 @@ async function VenueList() {
   const supabase = await createClient();
   // RLS отдаёт только заведения организаций пользователя.
   const [{ data: venues }, platform] = await Promise.all([
-    supabase.from("venues").select("id, name, city, type").order("created_at"),
+    supabase
+      .from("venues")
+      .select("id, org_id, name, city, type")
+      .order("created_at"),
     isPlatformAdmin(),
   ]);
 
   // Владелец платформы без своих заведений работает в кабинете платформы.
   if (!venues?.length && platform) redirect("/admin");
+
+  // Сотрудник одного заведения сразу попадает в него: там откроет смену.
+  if (venues?.length === 1 && !platform) {
+    const { data: isOwner } = await supabase.rpc("is_org_owner", {
+      p_org_id: venues[0].org_id,
+    });
+    if (!isOwner) redirect(`/app/${venues[0].id}/hall`);
+  }
 
   const platformLink = platform && (
     <Link

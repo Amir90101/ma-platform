@@ -195,14 +195,36 @@ export async function closeShift(
   shiftId: string,
   formData: FormData,
 ): Promise<CloseShiftResult> {
+  const r = await closeShiftNow(shiftId, formData);
+  if (r.ok) refresh();
+  return r;
+}
+
+// Конец смены сотрудника перед выходом: страницу не перерисовываем, иначе
+// каркас увидит, что смены нет, и вместо итога покажет «Начало смены».
+export async function endShift(
+  shiftId: string,
+  formData: FormData,
+): Promise<CloseShiftResult> {
+  return closeShiftNow(shiftId, formData);
+}
+
+async function closeShiftNow(
+  shiftId: string,
+  formData: FormData,
+): Promise<CloseShiftResult> {
   const cash = String(formData.get("cash") ?? "").trim();
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("close_shift", {
     p_shift_id: shiftId,
     p_closing_cash: /^\d+$/.test(cash) ? Number(cash) : -1,
   });
-  if (error) return result(error) as CloseShiftResult;
-  refresh();
+  if (error) {
+    return {
+      ok: false,
+      error: KNOWN_ERRORS.has(error.message) ? error.message : "unknown",
+    };
+  }
   return {
     ok: true,
     expected: data.expected_cash ?? 0,

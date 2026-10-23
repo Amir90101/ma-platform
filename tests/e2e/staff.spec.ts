@@ -1,115 +1,108 @@
 import { type Browser, expect, type Page, test } from "@playwright/test";
-import {
-  lastEmailText,
-  login,
-  OWNER,
-  registerOwner,
-  uniqueEmail,
-} from "./helpers";
-
-// Демо Бильярд из supabase/seed.sql.
-const VENUE_ID = "aaaaaaaa-1111-0000-0000-000000000001";
+import { seedWorkVenue } from "./fixtures";
+import { login, registerOwner, uniqueEmail, uniqueSuffix } from "./helpers";
 
 async function newPage(browser: Browser): Promise<Page> {
   const context = await browser.newContext();
   return context.newPage();
 }
 
-async function invite(page: Page, email: string) {
-  await page.getByLabel("Email администратора").fill(email);
-  await page.getByRole("button", { name: "Пригласить" }).click();
-}
-
-// Сценарий 5 из docs/USER_FLOWS.md.
-test("приглашённый администратор задаёт пароль и не видит настройки", async ({
+// Сценарий 5 из docs/USER_FLOWS.md (этап 9.3): сотрудник по логину,
+// вход открывает смену, выход закрывает её с пересчётом кассы.
+test("владелец создаёт сотрудника; вход открывает смену, выход закрывает", async ({
   page,
   browser,
 }) => {
-  await page.goto("/login");
-  await login(page, OWNER.email, OWNER.password);
+  const ownerEmail = uniqueEmail("staff-owner");
+  await registerOwner(page, ownerEmail);
   await expect(page).toHaveURL("/app");
-  await page.getByRole("link", { name: /Демо Бильярд/ }).click();
-  await page.getByRole("link", { name: "Настройки" }).click();
-  await page.getByRole("link", { name: "Сотрудники" }).click();
-  await expect(page).toHaveURL(`/app/${VENUE_ID}/settings/staff`);
+  const { venueId } = await seedWorkVenue(ownerEmail, 2);
+  await page.goto(`/app/${venueId}/settings/staff`);
+  await page.waitForLoadState("networkidle");
 
-  await invite(page, "not-an-email");
-  await expect(page.getByTestId("invite-error")).toHaveText(
-    "Введите корректный email",
+  // Пустая форма — ошибки у полей.
+  const add = page.getByRole("button", { name: "Добавить сотрудника" });
+  await add.click();
+  await expect(page.getByText("Введите имя")).toBeVisible();
+  await expect(page.getByText("Логин латиницей")).toBeVisible();
+
+  const staffLogin = `ai-${uniqueSuffix()}`;
+  await page.getByLabel("Имя", { exact: true }).fill("Айгерим");
+  await page.getByLabel("Логин", { exact: true }).fill(staffLogin);
+  await page.getByLabel("Пароль", { exact: true }).fill("staff-pass-1");
+  await add.click();
+  await expect(page.getByRole("status")).toHaveText(
+    `Сотрудник добавлен. Логин для входа: ${staffLogin}`,
+  );
+  await expect(page.getByTestId("staff-list")).toContainText(
+    `Логин: ${staffLogin}`,
   );
 
-  const adminEmail = uniqueEmail("admin");
-  await invite(page, adminEmail);
-  await expect(page.getByRole("status")).toContainText(
-    `Приглашение отправлено на ${adminEmail}`,
+  // Тот же логин второй раз не создаётся.
+  await page.getByLabel("Имя", { exact: true }).fill("Двойник");
+  await page.getByLabel("Логин", { exact: true }).fill(staffLogin);
+  await page.getByLabel("Пароль", { exact: true }).fill("staff-pass-1");
+  await add.click();
+  await expect(page.getByText("Такой логин уже занят")).toBeVisible();
+
+  // Сотрудник входит по логину и сразу открывает смену.
+  const staff = await newPage(browser);
+  await staff.goto("/login");
+  await login(staff, staffLogin, "staff-pass-1");
+  await expect(staff).toHaveURL(`/app/${venueId}/hall`);
+  const start = staff.getByTestId("shift-start");
+  await expect(start).toContainText("Начало смены");
+  await start.getByLabel("Наличные в кассе, ₸").fill("5000");
+  await start.getByRole("button", { name: "Открыть смену" }).click();
+  await expect(staff.getByTestId("shift-start")).toHaveCount(0);
+  await expect(staff.getByTestId("shift-bar")).toContainText(
+    "В кассе на начало: 5000",
   );
-  await expect(page.getByTestId("staff-list")).toContainText(adminEmail);
+  await expect(staff.getByRole("link", { name: "Настройки" })).toHaveCount(0);
 
-  // Повторное приглашение того же человека.
-  await invite(page, adminEmail);
-  await expect(page.getByTestId("invite-error")).toHaveText(
-    "Этот пользователь уже в команде",
+  // Выход — через закрытие смены.
+  await staff.getByRole("link", { name: "Закрыть смену" }).click();
+  await expect(staff).toHaveURL(`/app/${venueId}/shift-end`);
+  const end = staff.getByTestId("shift-end");
+  await end.getByLabel("Наличные в кассе сейчас, ₸").fill("4500");
+  await end.getByRole("button", { name: "Закрыть смену" }).click();
+  const result = staff.getByTestId("shift-end-result");
+  await expect(result).toContainText("По системе5 000 ₸");
+  await expect(result).toContainText("В кассе4 500 ₸");
+  await expect(result).toContainText("Разница-500 ₸");
+  await result.getByRole("button", { name: "Выйти" }).click();
+  await expect(staff).toHaveURL("/login");
+
+  // Владелец видит смену и недостачу в отчётах.
+  await page.goto(`/app/${venueId}/reports`);
+  const row = page.getByTestId("shift-row").first();
+  await expect(row).toContainText("Айгерим");
+  await expect(row).toContainText("-500 ₸");
+
+  // Новый пароль от владельца: старый не подходит, новый — да.
+  await page.goto(`/app/${venueId}/settings/staff`);
+  await page.waitForLoadState("networkidle");
+  await page.getByText("Сменить пароль").click();
+  await page.getByLabel(`Новый пароль для ${staffLogin}`).fill("staff-pass-2");
+  await page.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(page.getByText("Пароль изменён")).toBeVisible();
+
+  await login(staff, staffLogin, "staff-pass-1");
+  await expect(staff.locator("form").getByRole("alert")).toHaveText(
+    "Неверный логин, email или пароль",
   );
+  await login(staff, staffLogin, "staff-pass-2");
+  await expect(staff.getByTestId("shift-start")).toBeVisible();
+  await staff.getByRole("button", { name: "Выйти, не открывая смену" }).click();
+  await expect(staff).toHaveURL("/login");
 
-  // Администратор открывает ссылку из письма в своём браузере.
-  const body = await lastEmailText(adminEmail);
-  const link = body.match(/href="([^"]+)"/)?.[1]?.replaceAll("&amp;", "&");
-  expect(link, "ссылка в письме").toBeTruthy();
-
-  const adminPage = await newPage(browser);
-  await adminPage.goto(link!);
-  await expect(adminPage).toHaveURL("/reset-password");
-  await adminPage.getByLabel(/Новый пароль/).fill("admin-password-1");
-  await adminPage.getByLabel("Повторите пароль").fill("admin-password-1");
-  await adminPage.getByRole("button", { name: "Сохранить пароль" }).click();
-  await expect(adminPage).toHaveURL("/app");
-
-  await adminPage.getByRole("link", { name: /Демо Бильярд/ }).click();
-  await expect(adminPage).toHaveURL(`/app/${VENUE_ID}`);
-  await expect(adminPage.getByTestId("venue-role")).toHaveText(
-    "Вы администратор",
-  );
-  await expect(adminPage.getByRole("link", { name: "Настройки" })).toHaveCount(
-    0,
-  );
-
-  // Прямые ссылки на настройки возвращают на страницу заведения.
-  await adminPage.goto(`/app/${VENUE_ID}/settings`);
-  await expect(adminPage).toHaveURL(`/app/${VENUE_ID}`);
-  await adminPage.goto(`/app/${VENUE_ID}/settings/staff`);
-  await expect(adminPage).toHaveURL(`/app/${VENUE_ID}`);
-
-  // Владелец удаляет администратора — доступ пропадает.
-  await page.getByRole("button", { name: `Удалить ${adminEmail}` }).click();
-  await expect(page.getByTestId("staff-list")).not.toContainText(adminEmail);
-  await adminPage.goto(`/app/${VENUE_ID}`);
-  await expect(
-    adminPage.getByText("Заведение не найдено или у вас нет к нему доступа."),
-  ).toBeVisible();
-});
-
-test("уже зарегистрированного пользователя добавляют без письма", async ({
-  page,
-  browser,
-}) => {
-  const existingEmail = uniqueEmail("existing");
-  const other = await newPage(browser);
-  await registerOwner(other, existingEmail);
-  await expect(other).toHaveURL("/app");
-
-  await page.goto("/login");
-  await login(page, OWNER.email, OWNER.password);
-  await expect(page).toHaveURL("/app");
-  await page.goto(`/app/${VENUE_ID}/settings/staff`);
-  await invite(page, existingEmail.toUpperCase());
-  await expect(page.getByRole("status")).toContainText(
-    `${existingEmail} уже зарегистрирован`,
-  );
-
-  // У добавленного пользователя заведение появляется в списке.
-  await other.reload();
-  await expect(other.getByRole("link", { name: /Демо Бильярд/ })).toBeVisible();
-
-  await page.getByRole("button", { name: `Удалить ${existingEmail}` }).click();
-  await expect(page.getByTestId("staff-list")).not.toContainText(existingEmail);
+  // Удалённый сотрудник больше не видит заведение.
+  await page.getByRole("button", { name: `Удалить ${staffLogin}` }).click();
+  await expect(page.getByTestId("staff-list")).not.toContainText(staffLogin);
+  await page.reload();
+  await expect(page.getByTestId("staff-list")).toContainText("Владелец");
+  await expect(page.getByTestId("staff-list")).not.toContainText(staffLogin);
+  await login(staff, staffLogin, "staff-pass-2");
+  await expect(staff).toHaveURL("/app");
+  await expect(staff.getByText("У вас пока нет заведений")).toBeVisible();
 });

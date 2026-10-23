@@ -1,14 +1,21 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { LogOut } from "lucide-react";
 import { logout } from "@/app/(auth)/actions";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 // Кто вошёл и кнопка выхода. Proxy уже не пускает без входа; здесь
-// вторая проверка на сервере.
-export async function CurrentUser() {
+// вторая проверка на сервере. У сотрудника с открытой сменой вместо выхода —
+// «Закрыть смену»: выход идёт через пересчёт кассы (shiftEndHref).
+export async function CurrentUser({
+  shiftEndHref,
+}: {
+  shiftEndHref?: string;
+} = {}) {
   const t = await getTranslations("App");
+  const tShift = await getTranslations("Shift");
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   if (!data?.claims) redirect("/login");
@@ -29,12 +36,22 @@ export async function CurrentUser() {
       >
         {email.slice(0, 1)}
       </span>
-      <form action={logout}>
-        <Button type="submit" variant="ghost" size="sm">
+      {shiftEndHref ? (
+        <Link
+          href={shiftEndHref}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
           <LogOut aria-hidden="true" />
-          {t("logout")}
-        </Button>
-      </form>
+          {tShift("endAndLogout")}
+        </Link>
+      ) : (
+        <form action={logout}>
+          <Button type="submit" variant="ghost" size="sm">
+            <LogOut aria-hidden="true" />
+            {t("logout")}
+          </Button>
+        </form>
+      )}
     </div>
   );
 }
