@@ -11,6 +11,7 @@ test("администратор видит карту зала, но фигур
   await expect(page).toHaveURL(`/app/${DEMO_VENUE_ID}/hall`);
   // Смены нет — сначала открывает её.
   const start = page.getByTestId("shift-start");
+  await expect(start.or(page.getByTestId("hall-resources"))).toBeVisible();
   if (await start.isVisible()) {
     await start.getByLabel("Наличные в кассе, ₸").fill("0");
     await start.getByRole("button", { name: "Открыть смену" }).click();
