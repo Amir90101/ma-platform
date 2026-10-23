@@ -230,7 +230,9 @@
       "reports": "Отчёты"
     },
     "cover": "Обложка",
-    "makeCover": "Сделать обложкой"
+    "makeCover": "Сделать обложкой",
+    "allDay": "Круглосуточно",
+    "allDayEveryDay": "Круглосуточно, без выходных"
   },
   "Staff": {
     "title": "Сотрудники",
@@ -637,7 +639,8 @@
     "nextPhoto": "Следующее фото",
     "showPhoto": "Показать фото {n}",
     "infoTitle": "О заведении",
-    "openToday": "Сегодня {from}–{to}"
+    "openToday": "Сегодня {from}–{to}",
+    "todayAllDay": "Сегодня открыто круглосуточно"
   },
   "PublicBooking": {
     "title": "Забронировать",

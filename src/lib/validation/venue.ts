@@ -70,16 +70,23 @@ export const slugSchema = z
 
 // Часы работы: 1 = понедельник … 7 = воскресенье, по ISO.
 // close меньше open — работа через полночь. Выходной день в массив не попадает.
+// Круглосуточно — 00:00–00:00: сутки от полуночи до полуночи.
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const;
 
 const time = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "timeFormat");
 
+export const ALL_DAY = "00:00";
+
 export const workingDaySchema = z
   .object({ weekday: z.number().int().min(1).max(7), open: time, close: time })
-  .refine((d) => d.open !== d.close, {
+  .refine((d) => d.open !== d.close || d.open === ALL_DAY, {
     message: "timeSame",
     path: ["close"],
   });
+
+export function isAllDay(d: { open: string; close: string }) {
+  return d.open.slice(0, 5) === ALL_DAY && d.close.slice(0, 5) === ALL_DAY;
+}
 
 export type WorkingDay = z.infer<typeof workingDaySchema>;
 
@@ -113,15 +120,18 @@ export const organizationNameSchema = z
   .min(1, "orgNameRequired")
   .max(100, "tooLong");
 
-// Форма присылает по каждому дню поля hours.{d}.closed/open/close.
+// Форма присылает по каждому дню поля hours.{d}.closed/allDay/open/close.
 // Ошибки дней собираем с ключами hours.{d}.
 export function workingHoursFromForm(formData: FormData) {
   return WEEKDAYS.filter((d) => formData.get(`hours.${d}.closed`) !== "on").map(
-    (d) => ({
-      weekday: d,
-      open: String(formData.get(`hours.${d}.open`) ?? ""),
-      close: String(formData.get(`hours.${d}.close`) ?? ""),
-    }),
+    (d) =>
+      formData.get(`hours.${d}.allDay`) === "on"
+        ? { weekday: d, open: ALL_DAY, close: ALL_DAY }
+        : {
+            weekday: d,
+            open: String(formData.get(`hours.${d}.open`) ?? ""),
+            close: String(formData.get(`hours.${d}.close`) ?? ""),
+          },
   );
 }
 
