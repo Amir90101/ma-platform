@@ -13,6 +13,8 @@ test("владелец создаёт сотрудника; вход откры�
   page,
   browser,
 }) => {
+  // Длинный сценарий из двух браузеров: на dev-сервере дольше 30 секунд.
+  test.setTimeout(90_000);
   const ownerEmail = uniqueEmail("staff-owner");
   await registerOwner(page, ownerEmail);
   await expect(page).toHaveURL("/app");

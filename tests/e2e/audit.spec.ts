@@ -29,12 +29,14 @@ test("журнал: скидка и отмена оплаты администр
   const adminPage = await (await browser.newContext()).newPage();
   await adminPage.goto("/login");
   await login(adminPage, adminUser.email, adminUser.password);
-  await adminPage.waitForURL("/app");
-  await adminPage.goto(`/app/${venue.venueId}/hall`);
-  const shift = adminPage.getByTestId("shift-bar");
-  await shift.getByLabel("Наличные в кассе, ₸").fill("0");
-  await shift.getByRole("button", { name: "Открыть смену" }).click();
-  await expect(shift).toContainText("В кассе на начало: 0 ₸");
+  // Сотрудник одного заведения сразу на карте и открывает смену (этап 9.3).
+  await adminPage.waitForURL(`/app/${venue.venueId}/hall`);
+  const start = adminPage.getByTestId("shift-start");
+  await start.getByLabel("Наличные в кассе, ₸").fill("0");
+  await start.getByRole("button", { name: "Открыть смену" }).click();
+  await expect(adminPage.getByTestId("shift-bar")).toContainText(
+    "В кассе на начало: 0 ₸",
+  );
 
   const panel = adminPage.getByTestId("resource-panel");
   await resourceButton(adminPage, "Стол 1").click();
