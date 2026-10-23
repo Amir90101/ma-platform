@@ -2,7 +2,7 @@
 -- новые брони, отмены, неявки и закрытие смены.
 --
 -- События пишут триггеры в очередь notification_outbox. Раз в минуту pg_cron
--- через pg_net зовёт /api/telegram/dispatch: сервер Next.js забирает очередь,
+-- через pg_net зовёт /api/cron/dispatch: сервер Next.js забирает очередь,
 -- форматирует сообщения (next-intl) и отправляет их в Telegram. Там же он
 -- читает /start с кодом подключения (getUpdates), поэтому публичный webhook
 -- не нужен.
@@ -266,9 +266,10 @@ grant execute on function public.telegram_claim_outbox(int) to service_role;
 grant select, update on public.notification_outbox, public.telegram_state to service_role;
 grant select on public.telegram_chats to service_role;
 
--- Раз в минуту будим сервер. Адрес и секрет лежат в Vault (секреты
--- telegram_dispatch_url и telegram_dispatch_secret); без них ничего не делаем.
-create function public.telegram_dispatch_ping()
+-- Раз в минуту будим сервер (/api/cron/dispatch): Telegram и другие фоновые
+-- отправки. Адрес и секрет лежат в Vault (секреты cron_dispatch_url и
+-- cron_dispatch_secret); без них ничего не делаем.
+create function public.cron_dispatch_ping()
 returns void
 language plpgsql
 security definer
@@ -279,9 +280,9 @@ declare
   v_secret text;
 begin
   select decrypted_secret into v_url
-  from vault.decrypted_secrets where name = 'telegram_dispatch_url';
+  from vault.decrypted_secrets where name = 'cron_dispatch_url';
   select decrypted_secret into v_secret
-  from vault.decrypted_secrets where name = 'telegram_dispatch_secret';
+  from vault.decrypted_secrets where name = 'cron_dispatch_secret';
   if v_url is null or v_secret is null then
     return;
   end if;
@@ -293,6 +294,6 @@ begin
 end;
 $$;
 
-revoke execute on function public.telegram_dispatch_ping() from public, anon, authenticated;
+revoke execute on function public.cron_dispatch_ping() from public, anon, authenticated;
 
-select cron.schedule('telegram_dispatch', '* * * * *', 'select public.telegram_dispatch_ping()');
+select cron.schedule('cron_dispatch', '* * * * *', 'select public.cron_dispatch_ping()');

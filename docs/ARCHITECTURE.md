@@ -122,20 +122,20 @@ my-project/
 Уведомления заведению (этап 9.4): новая бронь, отмена, неявка, закрытие смены с итогом кассы.
 
 - Триггеры на `bookings` и `shifts` пишут события в очередь `notification_outbox` — только если у заведения есть подключённые чаты. В событии уже всё для текста (стол, время, гость, касса).
-- Раз в минуту pg_cron (`telegram_dispatch`) через pg_net зовёт `POST /api/telegram/dispatch` с секретом. Сервер читает `/start КОД` через `getUpdates` (публичный webhook не нужен), подключает чаты и рассылает очередь. Текст — `src/lib/telegram/format.ts` по `messages/ru.json` (раздел `Telegram`). Неотправленное повторяется до пяти раз.
+- Раз в минуту pg_cron (`cron_dispatch`) через pg_net зовёт `POST /api/cron/dispatch` с секретом. Сервер читает `/start КОД` через `getUpdates` (публичный webhook не нужен), подключает чаты и рассылает очередь. Текст — `src/lib/telegram/format.ts` по `messages/ru.json` (раздел `Telegram`). Неотправленное повторяется до пяти раз.
 - Владелец в «Настройки → Уведомления» получает одноразовую ссылку `t.me/<бот>?start=<код>` (30 минут). Для группы — добавить бота и отправить `/start@<бот> <код>`.
 
 Запуск на проде:
 
-1. Создать бота у @BotFather, в `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `TELEGRAM_DISPATCH_SECRET` (случайная строка). `TELEGRAM_API_BASE` не задавать.
+1. Создать бота у @BotFather, в `.env`: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, `CRON_SECRET` (случайная строка). `TELEGRAM_API_BASE` не задавать.
 2. В базе — адрес и тот же секрет для pg_cron:
 
    ```sql
-   select vault.create_secret('https://<домен>/api/telegram/dispatch', 'telegram_dispatch_url');
-   select vault.create_secret('<TELEGRAM_DISPATCH_SECRET>', 'telegram_dispatch_secret');
+   select vault.create_secret('https://<домен>/api/cron/dispatch', 'cron_dispatch_url');
+   select vault.create_secret('<CRON_SECRET>', 'cron_dispatch_secret');
    ```
 
-Локально с настоящим ботом: те же переменные в `.env.local`, адрес `http://host.docker.internal:3000/api/telegram/dispatch`. Тесты используют фиктивный Bot API (`TELEGRAM_API_BASE=http://127.0.0.1:3999`).
+Локально с настоящим ботом: те же переменные в `.env.local`, адрес `http://host.docker.internal:3000/api/cron/dispatch`. Тесты используют фиктивный Bot API (`TELEGRAM_API_BASE=http://127.0.0.1:3999`).
 
 ## Realtime
 

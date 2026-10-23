@@ -53,7 +53,7 @@ jobs:
               -e "s#^TURNSTILE_SECRET_KEY=.*#TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA#" \
               -e "s#^TELEGRAM_BOT_TOKEN=.*#TELEGRAM_BOT_TOKEN=e2e-token#" \
               -e "s#^TELEGRAM_BOT_USERNAME=.*#TELEGRAM_BOT_USERNAME=e2e_test_bot#" \
-              -e "s#^TELEGRAM_DISPATCH_SECRET=.*#TELEGRAM_DISPATCH_SECRET=e2e-dispatch-secret#" \
+              -e "s#^CRON_SECRET=.*#CRON_SECRET=e2e-cron-secret#" \
               -e "s#^TELEGRAM_API_BASE=.*#TELEGRAM_API_BASE=http://127.0.0.1:3999#" \
               .env.example > .env.local
       - run: npm ci

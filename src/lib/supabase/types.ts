@@ -596,6 +596,9 @@ isOneToOne: false
 "create_telegram_link_code":
 { Args: { "p_venue_id": string }; Returns: string
                            },
+"cron_dispatch_ping":
+{ Args: Record<PropertyKey, never>; Returns: undefined
+                           },
 "enqueue_notification":
 { Args: { "p_kind": string,"p_payload": Json,"p_venue_id": string }; Returns: undefined
                            },
@@ -756,9 +759,6 @@ isOneToOne: false
         isOneToOne: false
         isSetofReturn: true
       } },
-"telegram_dispatch_ping":
-{ Args: Record<PropertyKey, never>; Returns: undefined
-                           },
 "telegram_link_chat":
 { Args: { "p_chat_id": number,"p_code": string,"p_title": string }; Returns: string
                            },

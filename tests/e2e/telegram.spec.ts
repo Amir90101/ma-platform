@@ -5,7 +5,7 @@ import { registerOwner, uniqueEmail } from "./helpers";
 
 // Фиктивный Bot API на адресе из TELEGRAM_API_BASE (.env.local, CI).
 const PORT = 3999;
-const SECRET = "e2e-dispatch-secret";
+const SECRET = "e2e-cron-secret";
 
 type Sent = { chat_id: number; text: string };
 
@@ -40,7 +40,7 @@ function fakeTelegram() {
 
 // То, что раз в минуту делает pg_cron.
 async function dispatch(page: Page) {
-  const res = await page.request.post("/api/telegram/dispatch", {
+  const res = await page.request.post("/api/cron/dispatch", {
     headers: { Authorization: `Bearer ${SECRET}` },
   });
   expect(res.status()).toBe(200);
@@ -63,7 +63,7 @@ test("владелец подключает чат, бот присылает н
     const venue = await seedWorkVenue(email, 1);
 
     // Без секрета отправитель не запускается.
-    const anon = await page.request.post("/api/telegram/dispatch");
+    const anon = await page.request.post("/api/cron/dispatch");
     expect(anon.status()).toBe(401);
 
     await page.goto(`/app/${venue.venueId}/settings/notifications`);

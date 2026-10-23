@@ -404,7 +404,7 @@ RPC для таблиц «только через RPC» объявлены `secu
 
 ## Фоновые задачи (pg_cron)
 
-- `telegram_dispatch` — каждую минуту `telegram_dispatch_ping()`: POST на адрес из Vault (`telegram_dispatch_url`, `telegram_dispatch_secret`); без секретов ничего не делает.
+- `cron_dispatch` — каждую минуту `cron_dispatch_ping()`: POST на адрес из Vault (`cron_dispatch_url`, `cron_dispatch_secret`); без секретов ничего не делает.
 
 | Задача | Расписание | Что делает |
 | --- | --- | --- |
