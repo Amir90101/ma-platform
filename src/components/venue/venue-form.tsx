@@ -19,6 +19,7 @@ import {
   WEEKDAYS,
   type WorkingDay,
 } from "@/lib/validation/venue";
+import { IikoFields } from "@/components/integration/iiko-settings";
 import { useHydrated } from "@/lib/hooks/use-hydrated";
 
 export type VenueFormValues = {
@@ -109,6 +110,7 @@ export function VenueForm({
             <Input id="orgName" name="orgName" autoComplete="off" />
             <p className="text-muted-foreground text-sm">{t("orgNameHint")}</p>
           </Field>
+          <CashSystemField error={errors.iiko} />
         </>
       )}
 
@@ -215,6 +217,45 @@ export function VenueForm({
             : t("save")}
       </Button>
     </form>
+  );
+}
+
+// Касса заведения при подключении: полная CRM или iiko (только онлайн-бронь).
+// Менять её потом может только владелец платформы.
+function CashSystemField({ error }: { error?: string }) {
+  const t = useTranslations("Integration");
+  const [cash, setCash] = useState<"none" | "iiko">("none");
+  return (
+    <fieldset className="grid gap-3">
+      <legend className="mb-1 text-sm font-medium">{t("cashTitle")}</legend>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {(["none", "iiko"] as const).map((v) => (
+          <label
+            key={v}
+            className="bg-muted has-checked:bg-foreground has-checked:text-background grid cursor-pointer gap-1 rounded-xl p-4 transition-colors"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <input
+                type="radio"
+                name="cashSystem"
+                value={v}
+                checked={cash === v}
+                onChange={() => setCash(v)}
+                className="accent-primary size-4"
+              />
+              {v === "none" ? t("cashNone") : t("cashIiko")}
+            </span>
+            <span className="text-sm opacity-70">
+              {v === "none" ? t("cashNoneHint") : t("cashIikoHint")}
+            </span>
+          </label>
+        ))}
+      </div>
+      {cash === "iiko" && <IikoFields />}
+      {error && (
+        <p className="text-destructive text-sm">{t(`errors.${error}`)}</p>
+      )}
+    </fieldset>
   );
 }
 

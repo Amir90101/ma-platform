@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { PageHeader } from "@/components/app-shell/page-header";
-import {
-  BookingOnlySwitch,
-  IikoSettings,
-} from "@/components/integration/iiko-settings";
+import { IikoStatus } from "@/components/integration/iiko-settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getVenueAccess } from "@/lib/venue-access";
 
@@ -62,29 +59,20 @@ async function Integration({
 
   return (
     <div className="grid max-w-3xl gap-6">
-      <PageHeader title={t("title")} description={t("hint")} />
+      <PageHeader title={t("title")} description={t("iikoHint")} />
 
+      {/* Менять режим и интеграцию может только владелец платформы. */}
       <Card>
         <CardHeader>
           <CardTitle>
             <h2>{t("modeTitle")}</h2>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <BookingOnlySwitch venueId={venueId} on={venue.booking_only} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2>{t("iikoTitle")}</h2>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <p className="text-muted-foreground text-sm">{t("iikoHint")}</p>
-          <IikoSettings
-            venueId={venueId}
+        <CardContent className="grid gap-4" data-testid="integration-readonly">
+          <p className="font-semibold">
+            {venue.booking_only ? t("bookingOnly") : t("fullMode")}
+          </p>
+          <IikoStatus
             state={{
               hasKey: Boolean(integration?.api_login_secret_id),
               enabled: Boolean(integration?.enabled),
@@ -95,6 +83,7 @@ async function Integration({
               tables: tables ?? 0,
             }}
           />
+          <p className="text-muted-foreground text-sm">{t("ownerReadonly")}</p>
         </CardContent>
       </Card>
 

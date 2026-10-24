@@ -781,9 +781,12 @@ isOneToOne: false
 "platform_create_venue":
 { Args: { "p_org_name": string,"p_owner_id": string,"p_venue": Json }; Returns: string
                            },
+"platform_create_venue_iiko":
+{ Args: { "p_api_login": string,"p_org_name": string,"p_organization_id": string,"p_owner_id": string,"p_section_ids": (string)[],"p_tables": Json,"p_terminal_group_id": string,"p_venue": Json }; Returns: string
+                           },
 "platform_venues":
 { Args: Record<PropertyKey, never>; Returns: {
-              "city": string,"created_at": string,"has_hours": boolean,"id": string,"is_published": boolean,"name": string,"org_name": string,"owner_email": string,"photos": number,"resources": number,"slug": string,"staff": number,"tariffs": number,"type": Database["public"]['Enums']["venue_type"]
+              "booking_only": boolean,"city": string,"created_at": string,"has_hours": boolean,"id": string,"iiko_enabled": boolean,"is_published": boolean,"name": string,"org_name": string,"owner_email": string,"photos": number,"resources": number,"slug": string,"staff": number,"tariffs": number,"type": Database["public"]['Enums']["venue_type"]
             }[]
                            },
 "remove_session_item":
@@ -806,6 +809,9 @@ isOneToOne: false
                            },
 "set_iiko_api_login":
 { Args: { "p_api_login": string,"p_venue_id": string }; Returns: undefined
+                           },
+"set_venue_booking_only":
+{ Args: { "p_on": boolean,"p_venue_id": string }; Returns: undefined
                            },
 "start_session":
 { Args: { "p_customer_name"?: string,"p_customer_phone"?: string,"p_expected_end_at"?: string,"p_package_id"?: string,"p_resource_id": string }; Returns: string
