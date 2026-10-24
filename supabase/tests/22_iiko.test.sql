@@ -1,6 +1,6 @@
 -- Этап 9.5: интеграция с iiko. Ключ в Vault, настройки, синхронизация
--- столов, очередь отправки броней.
--- Демо Бильярд: owner 1111…, admin 2222…, заведение aaaaaaaa-1111….
+-- столов, очередь отправки броней. Управляет только владелец платформы.
+-- Демо Бильярд: owner 1111…, admin 2222…, заведение aaaaaaaa-1111…; platform 9999….
 begin;
 select * from no_plan();
 
@@ -13,6 +13,10 @@ begin
 end;
 $$;
 
+-- Локальные данные могли изменить режим заведения: начинаем с полной CRM.
+update public.venues set booking_only = false
+where id = 'aaaaaaaa-1111-0000-0000-000000000001';
+
 -- Ключ ----------------------------------------------------------------------------
 
 select pg_temp.login('22222222-2222-2222-2222-222222222222');
@@ -24,13 +28,39 @@ reset role;
 
 select pg_temp.login('11111111-1111-1111-1111-111111111111');
 select throws_ok(
+  $$select public.set_iiko_api_login('aaaaaaaa-1111-0000-0000-000000000001', 'key')$$,
+  '42501', null, 'владелец заведения не задаёт ключ iiko'
+);
+select throws_ok(
+  $$select public.save_iiko_settings('aaaaaaaa-1111-0000-0000-000000000001',
+    null, null, '{}', false)$$,
+  '42501', null, 'и не меняет настройки'
+);
+select throws_ok(
+  $$select public.set_venue_booking_only('aaaaaaaa-1111-0000-0000-000000000001', true)$$,
+  '42501', null, 'и не включает режим «только онлайн-бронь»'
+);
+select throws_ok(
+  $$update public.venues set booking_only = true
+    where id = 'aaaaaaaa-1111-0000-0000-000000000001'$$,
+  '42501', null, 'даже прямым изменением своей строки'
+);
+select lives_ok(
+  $$update public.venues set description = 'Можно'
+    where id = 'aaaaaaaa-1111-0000-0000-000000000001'$$,
+  'остальной профиль владелец правит как раньше'
+);
+reset role;
+
+select pg_temp.login('99999999-9999-9999-9999-999999999999');
+select throws_ok(
   $$select public.save_iiko_settings('aaaaaaaa-1111-0000-0000-000000000001',
     null, null, '{}', false)$$,
   'P0001', 'api_login_required', 'без ключа настройки не сохраняются'
 );
 select lives_ok(
   $$select public.set_iiko_api_login('aaaaaaaa-1111-0000-0000-000000000001', ' key-1 ')$$,
-  'владелец сохраняет ключ'
+  'владелец платформы сохраняет ключ'
 );
 select lives_ok(
   $$select public.set_iiko_api_login('aaaaaaaa-1111-0000-0000-000000000001', 'key-2')$$,
@@ -38,16 +68,24 @@ select lives_ok(
 );
 select throws_ok(
   $$select public.iiko_api_login('aaaaaaaa-1111-0000-0000-000000000001')$$,
-  '42501', null, 'ключ владельцу обратно не отдаётся'
+  '42501', null, 'ключ обратно не отдаётся никому, кроме сервера'
 );
 select is(
-  (select count(*)::int from public.venue_integrations), 1,
-  'владелец видит строку интеграции (без ключа)'
+  (select count(*)::int from public.venue_integrations
+    where venue_id = 'aaaaaaaa-1111-0000-0000-000000000001'), 1,
+  'владелец платформы видит строку интеграции'
 );
 select throws_ok(
   $$select public.save_iiko_settings('aaaaaaaa-1111-0000-0000-000000000001',
     null, null, '{}', true)$$,
   'P0001', 'iiko_settings_incomplete', 'включить без организации и залов нельзя'
+);
+reset role;
+
+select pg_temp.login('11111111-1111-1111-1111-111111111111');
+select is(
+  (select count(*)::int from public.venue_integrations), 1,
+  'владелец заведения видит состояние интеграции'
 );
 reset role;
 
@@ -63,6 +101,13 @@ reset role;
 -- Столы ------------------------------------------------------------------------
 
 select pg_temp.login('11111111-1111-1111-1111-111111111111');
+select throws_ok(
+  $$select public.sync_iiko_tables('aaaaaaaa-1111-0000-0000-000000000001', '[]'::jsonb)$$,
+  '42501', null, 'владелец заведения не загружает столы'
+);
+reset role;
+
+select pg_temp.login('99999999-9999-9999-9999-999999999999');
 select is(
   public.sync_iiko_tables('aaaaaaaa-1111-0000-0000-000000000001', '[
     {"iiko_table_id":"99999999-0000-0000-0000-000000000001","name":"Стол iiko 1","capacity":4,"kind":"pool_table","x":40,"y":40,"w":140,"h":100},
@@ -70,6 +115,7 @@ select is(
   ]'::jsonb),
   2, 'загружены два стола'
 );
+reset role;
 select is(
   (select count(*)::int from public.resources r join public.halls h on h.id = r.hall_id
     where r.venue_id = 'aaaaaaaa-1111-0000-0000-000000000001' and h.name = 'iiko'),
@@ -81,6 +127,7 @@ select lives_ok(
   ]'::jsonb)$$,
   'повторная загрузка'
 );
+reset role;
 select results_eq(
   $$select name, capacity, is_active, x from public.resources
     where iiko_table_id = '99999999-0000-0000-0000-000000000001'$$,
@@ -92,7 +139,6 @@ select is(
     where iiko_table_id = '99999999-0000-0000-0000-000000000002'),
   false, 'стол, которого нет в iiko, выключен'
 );
-reset role;
 
 select pg_temp.login('22222222-2222-2222-2222-222222222222');
 select throws_ok(
@@ -112,14 +158,18 @@ select 'cccccccc-2222-0000-0000-000000000001', 'aaaaaaaa-1111-0000-0000-00000000
   'dddddddd-2222-0000-0000-000000000001',
   now() + interval '50 days', now() + interval '50 days 1 hour', now() + interval '50 days 1 hour', 'online'
 from public.resources where iiko_table_id = '99999999-0000-0000-0000-000000000001';
-select is((select count(*)::int from public.integration_outbox), 0, 'выключенный обмен не пишет очередь');
+select is(
+  (select count(*)::int from public.integration_outbox
+    where booking_id = 'cccccccc-2222-0000-0000-000000000001'),
+  0, 'выключенный обмен не пишет очередь'
+);
 
-select pg_temp.login('11111111-1111-1111-1111-111111111111');
+select pg_temp.login('99999999-9999-9999-9999-999999999999');
 select lives_ok(
   $$select public.save_iiko_settings('aaaaaaaa-1111-0000-0000-000000000001',
     '88888888-0000-0000-0000-000000000001', '88888888-0000-0000-0000-000000000002',
     array['88888888-0000-0000-0000-000000000003'::uuid], true)$$,
-  'владелец включает обмен'
+  'владелец платформы включает обмен'
 );
 reset role;
 
@@ -150,12 +200,47 @@ select pg_temp.login('11111111-1111-1111-1111-111111111111');
 select throws_ok('select 1 from public.integration_outbox', '42501', null, 'очередь закрыта для пользователей');
 reset role;
 
--- Режим «только онлайн-бронь» меняет владелец.
-select pg_temp.login('11111111-1111-1111-1111-111111111111');
-select isnt_empty(
-  $$update public.venues set booking_only = true
-    where id = 'aaaaaaaa-1111-0000-0000-000000000001' returning id$$,
-  'владелец включает режим только онлайн-брони'
+-- Режим «только онлайн-бронь» меняет владелец платформы.
+select pg_temp.login('99999999-9999-9999-9999-999999999999');
+select lives_ok(
+  $$select public.set_venue_booking_only('aaaaaaaa-1111-0000-0000-000000000001', true)$$,
+  'владелец платформы включает режим только онлайн-брони'
+);
+reset role;
+select is(
+  (select booking_only from public.venues where id = 'aaaaaaaa-1111-0000-0000-000000000001'),
+  true, 'режим включён'
+);
+
+-- Новое заведение сразу с iiko одной транзакцией.
+insert into auth.users (id, email, aud, role)
+values ('44444444-2222-4444-4444-444444444444', 'iikoowner@demo.local', 'authenticated', 'authenticated');
+select pg_temp.login('99999999-9999-9999-9999-999999999999');
+create temp table iiko_venue as
+select public.platform_create_venue_iiko(
+  '44444444-2222-4444-4444-444444444444', 'ТОО Ресторан',
+  '{"type":"karaoke","name":"Караоке iiko","slug":"karaoke-iiko-22","city":"Алматы"}'::jsonb,
+  'iiko-key', '88888888-0000-0000-0000-000000000011', '88888888-0000-0000-0000-000000000012',
+  array['88888888-0000-0000-0000-000000000013'::uuid],
+  '[{"iiko_table_id":"99999999-0000-0000-0000-000000000021","name":"Кабинка 1","capacity":6,"kind":"karaoke_room","x":40,"y":40,"w":140,"h":100}]'::jsonb
+) as id;
+reset role;
+select results_eq(
+  $$select v.booking_only, i.enabled, (select count(*)::int from public.resources r where r.venue_id = v.id)
+    from public.venues v join public.venue_integrations i on i.venue_id = v.id
+    where v.id = (select id from iiko_venue)$$,
+  $$values (true, true, 1)$$,
+  'заведение создано в режиме только брони, обмен включён, стол загружен'
+);
+select is(
+  public.iiko_api_login((select id from iiko_venue)), 'iiko-key', 'ключ сохранён'
+);
+select pg_temp.login('44444444-2222-4444-4444-444444444444');
+select throws_ok(
+  $$select public.platform_create_venue_iiko('44444444-2222-4444-4444-444444444444', null,
+    '{"type":"karaoke","name":"Сам","slug":"self-iiko-22","city":"Алматы"}'::jsonb,
+    'k', null, null, '{}', '[]'::jsonb)$$,
+  '42501', null, 'владелец заведения так заведения не создаёт'
 );
 reset role;
 

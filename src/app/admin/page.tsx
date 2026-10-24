@@ -34,6 +34,7 @@ async function PlatformVenues({
 }: Pick<PageProps<"/admin">, "searchParams">) {
   const t = await getTranslations("Platform");
   const tVenue = await getTranslations("Venue");
+  const tIntegration = await getTranslations("Integration");
   const { created } = await searchParams;
   const supabase = await createClient();
   const { data: venues } = await supabase.rpc("platform_venues");
@@ -105,6 +106,13 @@ async function PlatformVenues({
                   >
                     {v.is_published ? t("published") : t("notPublished")}
                   </span>
+                  {v.booking_only && (
+                    <span className="bg-sidebar rounded-full px-2.5 py-0.5 text-xs font-semibold text-white">
+                      {v.iiko_enabled
+                        ? tIntegration("badgeIiko")
+                        : tIntegration("badgeBookingOnly")}
+                    </span>
+                  )}
                 </p>
                 <p className="text-muted-foreground text-sm">
                   {tVenue(`types.${v.type}`)} · {v.city} · {v.org_name}
@@ -131,6 +139,12 @@ async function PlatformVenues({
                     </li>
                   ))}
                 </ul>
+                <Link
+                  href={`/admin/venues/${v.id}`}
+                  className="text-sm font-medium hover:underline"
+                >
+                  {tIntegration("platformLink")}
+                </Link>
                 {v.is_published && (
                   <Link
                     href={`/${v.slug}`}

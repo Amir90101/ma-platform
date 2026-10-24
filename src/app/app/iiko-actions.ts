@@ -2,11 +2,13 @@
 
 import { refresh } from "next/cache";
 import { createIikoClient, IikoError } from "@/lib/iiko/client";
-import { iikoTableLayout } from "@/lib/iiko/layout";
+import { iikoTablesFor } from "@/lib/iiko/tables";
+import { isPlatformAdmin } from "@/lib/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { resourceKindsFor } from "@/lib/venue-types";
-import { getVenueAccess } from "@/lib/venue-access";
+import { createClient } from "@/lib/supabase/server";
 
+// Интеграцией с iiko управляет только владелец платформы: при подключении
+// заведения и потом в /admin. Владелец заведения видит её состояние.
 // Ошибки — ключи из messages (Integration.errors); ошибку iiko показываем
 // её текстом (detail).
 export type IikoResult<T = object> =
@@ -14,15 +16,11 @@ export type IikoResult<T = object> =
 
 type Option = { id: string; name: string };
 
-async function ownerIiko(venueId: string) {
-  const access = await getVenueAccess(venueId);
-  if (!access?.isOwner) return null;
-  // Ключ service_role — только после проверки, что зовёт владелец.
-  const { data: apiLogin } = await createAdminClient().rpc("iiko_api_login", {
-    p_venue_id: venueId,
-  });
-  return { access, client: apiLogin ? createIikoClient(apiLogin) : null };
-}
+export type IikoOptions = {
+  organizations: Option[];
+  terminalGroups: Option[];
+  sections: (Option & { tables: number })[];
+};
 
 function iikoFailure(e: unknown): {
   ok: false;
@@ -34,43 +32,27 @@ function iikoFailure(e: unknown): {
     : { ok: false, error: "unknown" };
 }
 
-export async function saveIikoKey(
-  venueId: string,
-  formData: FormData,
-): Promise<IikoResult<{ organizations: Option[] }>> {
-  const apiLogin = String(formData.get("apiLogin") ?? "").trim();
-  if (!apiLogin) return { ok: false, error: "apiLoginRequired" };
-  const access = await getVenueAccess(venueId);
-  if (!access?.isOwner) return { ok: false, error: "forbidden" };
-  // Сначала проверяем ключ в iiko, потом сохраняем.
-  let organizations: Option[];
-  try {
-    organizations = await createIikoClient(apiLogin).organizations();
-  } catch (e) {
-    return iikoFailure(e);
+// Клиент iiko по ключу из формы или по сохранённому ключу заведения.
+// Ключ service_role — только после проверки владельца платформы.
+async function platformIiko(source: { venueId?: string; apiLogin?: string }) {
+  if (!(await isPlatformAdmin())) return null;
+  let apiLogin = source.apiLogin?.trim() || null;
+  if (!apiLogin && source.venueId) {
+    const { data } = await createAdminClient().rpc("iiko_api_login", {
+      p_venue_id: source.venueId,
+    });
+    apiLogin = data;
   }
-  const { error } = await access.supabase.rpc("set_iiko_api_login", {
-    p_venue_id: venueId,
-    p_api_login: apiLogin,
-  });
-  if (error) return { ok: false, error: "unknown" };
-  refresh();
-  return { ok: true, organizations };
+  return { client: apiLogin ? createIikoClient(apiLogin) : null };
 }
 
 // Справочники iiko для формы: организации, группы терминалов, залы.
 export async function loadIikoOptions(
-  venueId: string,
+  source: { venueId?: string; apiLogin?: string },
   organizationId: string | null,
   terminalGroupId: string | null,
-): Promise<
-  IikoResult<{
-    organizations: Option[];
-    terminalGroups: Option[];
-    sections: (Option & { tables: number })[];
-  }>
-> {
-  const iiko = await ownerIiko(venueId);
+): Promise<IikoResult<IikoOptions>> {
+  const iiko = await platformIiko(source);
   if (!iiko) return { ok: false, error: "forbidden" };
   if (!iiko.client) return { ok: false, error: "apiLoginRequired" };
   try {
@@ -96,34 +78,47 @@ export async function loadIikoOptions(
   }
 }
 
-// Сохранить выбор, загрузить столы выбранных залов и включить обмен.
+// Существующее заведение: новый ключ, выбор залов, загрузка столов и
+// включение обмена. Ключ пустой — остаётся сохранённый.
 export async function enableIiko(
   venueId: string,
   formData: FormData,
 ): Promise<IikoResult<{ tables: number }>> {
-  const organizationId = String(formData.get("organizationId") ?? "");
-  const terminalGroupId = String(formData.get("terminalGroupId") ?? "");
-  const sectionIds = formData.getAll("sectionIds").map(String);
+  const apiLogin = String(formData.get("iikoApiLogin") ?? "").trim();
+  const organizationId = String(formData.get("iikoOrganizationId") ?? "");
+  const terminalGroupId = String(formData.get("iikoTerminalGroupId") ?? "");
+  const sectionIds = formData.getAll("iikoSectionIds").map(String);
   if (!organizationId || !terminalGroupId || sectionIds.length === 0) {
     return { ok: false, error: "settingsIncomplete" };
   }
-  const iiko = await ownerIiko(venueId);
-  if (!iiko) return { ok: false, error: "forbidden" };
-  if (!iiko.client) return { ok: false, error: "apiLoginRequired" };
-  const { supabase, venue } = iiko.access;
+  if (!(await isPlatformAdmin())) return { ok: false, error: "forbidden" };
+  const db = createAdminClient();
+  const [{ data: saved }, { data: venue }] = await Promise.all([
+    db.rpc("iiko_api_login", { p_venue_id: venueId }),
+    db.from("venues").select("type").eq("id", venueId).single(),
+  ]);
+  const key = apiLogin || saved;
+  if (!key) return { ok: false, error: "apiLoginRequired" };
+  if (!venue) return { ok: false, error: "unknown" };
 
   let tables;
   try {
-    tables = (await iiko.client.sections(terminalGroupId))
-      .filter((s) => sectionIds.includes(s.id))
-      .flatMap((s) => s.tables)
-      .filter((t) => !t.isDeleted);
+    tables = await iikoTablesFor(key, terminalGroupId, sectionIds, venue.type);
   } catch (e) {
     return iikoFailure(e);
   }
+  // Права ещё раз проверяет база: функции только для владельца платформы.
+  const supabase = await createClient();
+  if (apiLogin) {
+    const { error } = await supabase.rpc("set_iiko_api_login", {
+      p_venue_id: venueId,
+      p_api_login: apiLogin,
+    });
+    if (error) return { ok: false, error: "unknown" };
+  }
   const { error: syncError } = await supabase.rpc("sync_iiko_tables", {
     p_venue_id: venueId,
-    p_tables: iikoTableLayout(tables, resourceKindsFor(venue.type)[0]),
+    p_tables: tables,
   });
   if (syncError) return { ok: false, error: "unknown" };
   const { error } = await supabase.rpc("save_iiko_settings", {
@@ -139,14 +134,14 @@ export async function enableIiko(
 }
 
 export async function disableIiko(venueId: string): Promise<IikoResult> {
-  const access = await getVenueAccess(venueId);
-  if (!access?.isOwner) return { ok: false, error: "forbidden" };
-  const { data } = await access.supabase
+  if (!(await isPlatformAdmin())) return { ok: false, error: "forbidden" };
+  const supabase = await createClient();
+  const { data } = await supabase
     .from("venue_integrations")
     .select("organization_id, terminal_group_id, section_ids")
     .eq("venue_id", venueId)
     .maybeSingle();
-  const { error } = await access.supabase.rpc("save_iiko_settings", {
+  const { error } = await supabase.rpc("save_iiko_settings", {
     p_venue_id: venueId,
     // При выключении пустые id допустимы: типы RPC этого не знают.
     p_organization_id: data?.organization_id as string,
@@ -164,14 +159,12 @@ export async function setBookingOnly(
   venueId: string,
   on: boolean,
 ): Promise<IikoResult> {
-  const access = await getVenueAccess(venueId);
-  if (!access?.isOwner) return { ok: false, error: "forbidden" };
-  const { data, error } = await access.supabase
-    .from("venues")
-    .update({ booking_only: on })
-    .eq("id", venueId)
-    .select("id");
-  if (error || !data?.length) return { ok: false, error: "unknown" };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_venue_booking_only", {
+    p_venue_id: venueId,
+    p_on: on,
+  });
+  if (error) return { ok: false, error: "forbidden" };
   refresh();
   return { ok: true };
 }

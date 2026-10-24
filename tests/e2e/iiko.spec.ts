@@ -1,8 +1,14 @@
 import http from "node:http";
 import { expect, test } from "@playwright/test";
 import { addDays, todayIn } from "../../src/lib/venue-time";
-import { admin, seedPublicVenue } from "./fixtures";
-import { registerOwner, uniqueEmail } from "./helpers";
+import { admin } from "./fixtures";
+import {
+  login,
+  OWNER_PASSWORD,
+  PLATFORM,
+  uniqueEmail,
+  uniqueSuffix,
+} from "./helpers";
 
 // Фиктивный iikoCloud API на адресе из IIKO_API_BASE (.env.local, CI).
 const PORT = 3998;
@@ -95,69 +101,117 @@ function fakeIiko() {
   };
 }
 
-test("заведение с iiko: занятость из кассы, бронь и отмена уходят в iiko", async ({
+test("владелец платформы подключает заведение сразу с iiko; занятость из кассы, бронь и отмена уходят в iiko", async ({
   page,
+  browser,
 }, testInfo) => {
   test.skip(
     testInfo.project.name === "mobile",
     "один фиктивный iiko на порту 3998",
   );
-  test.setTimeout(90_000);
+  test.setTimeout(120_000);
   const iiko = fakeIiko();
   await iiko.start();
   try {
-    const email = uniqueEmail("iiko");
-    await registerOwner(page, email);
-    await expect(page).toHaveURL("/app");
-    const venue = await seedPublicVenue(email, 1);
+    // Владелец уже есть в системе: заведение появится у него после входа.
+    const ownerEmail = uniqueEmail("iiko-owner");
+    await admin.auth.admin.createUser({
+      email: ownerEmail,
+      password: OWNER_PASSWORD,
+      email_confirm: true,
+    });
 
-    // Режим «только онлайн-бронь»: карты зала в меню нет.
-    await page.goto(`/app/${venue.venueId}/settings/integration`);
+    // Владелец платформы: заведение и касса iiko в одной форме.
+    await page.goto("/login");
+    await login(page, PLATFORM.email, PLATFORM.password);
+    await page.waitForURL("/admin");
+    await page.goto("/admin/new");
     await page.waitForLoadState("networkidle");
-    await page.getByLabel("Только онлайн-бронь").check();
+    await page.getByLabel("Email владельца заведения").fill(ownerEmail);
+    await page.getByLabel("Название организации").fill("ТОО Караоке iiko");
+    await page.getByLabel("Тип заведения").selectOption({ label: "Караоке" });
+    await page.getByLabel("Название", { exact: true }).fill("Караоке iiko");
+    const slug = `iiko-${uniqueSuffix()}`;
+    await page.getByLabel("Адрес страницы").fill(slug);
+    await page.getByLabel("Город").fill("Алматы");
+    await page.getByLabel("Круглосуточно, без выходных").check();
+    await page.getByLabel("iiko — только онлайн-бронь").check();
+    const fields = page.getByTestId("iiko-fields");
+    await fields.getByLabel("Ключ API iiko").fill("e2e-api-login");
+    await fields.getByRole("button", { name: "Проверить ключ" }).click();
+    await fields.getByLabel("Организация").selectOption({ label: "Клуб iiko" });
+    await fields
+      .getByLabel("Группа терминалов")
+      .selectOption({ label: "Касса" });
+    await expect(fields.getByText("Основной · столов: 2")).toBeVisible();
+    await page.getByRole("button", { name: "Создать заведение" }).click();
+    await expect(page).toHaveURL(`/admin?created=${slug}`);
+    const card = page
+      .getByTestId("platform-venue")
+      .filter({ hasText: ownerEmail });
+    await expect(card).toContainText("iiko");
+    await expect(card).toContainText("Места · 2");
+
+    // Публикуем и задаём цену — это делает владелец заведения, здесь сразу.
+    const { data: venue } = await admin
+      .from("venues")
+      .update({ is_published: true })
+      .eq("slug", slug)
+      .select("id, booking_only")
+      .single();
+    expect(venue!.booking_only).toBe(true);
+    await admin.from("tariffs").insert({
+      venue_id: venue!.id,
+      name: "Сутки",
+      resource_kinds: ["karaoke_room"],
+      price_per_hour: 3000,
+      weekdays: [1, 2, 3, 4, 5, 6, 7],
+      time_from: "00:00",
+      time_to: "00:00",
+    });
+
+    // Владелец заведения видит интеграцию, но не меняет её.
+    const owner = await (await browser.newContext()).newPage();
+    await owner.goto("/login");
+    await login(owner, ownerEmail, OWNER_PASSWORD);
+    await owner.waitForURL("/app");
+    await owner.goto(`/app/${venue!.id}/settings/integration`);
+    const readonly = owner.getByTestId("integration-readonly");
+    await expect(readonly).toContainText("Только онлайн-бронь");
+    await expect(readonly).toContainText("Обмен с iiko включён · столов: 2");
+    await expect(owner.getByLabel("Ключ API iiko")).toHaveCount(0);
+    await expect(owner.getByLabel("Только онлайн-бронь")).toHaveCount(0);
     await expect(
-      page.getByRole("navigation", { name: "Разделы заведения" }).first(),
+      owner.getByRole("navigation", { name: "Разделы заведения" }).first(),
     ).not.toContainText("Карта зала");
 
-    // Ключ, организация, касса, зал → столы загружены, обмен включён.
-    const form = page.getByTestId("iiko-form");
-    await form.getByLabel("Ключ API iiko").fill("e2e-api-login");
-    await form.getByRole("button", { name: "Проверить и сохранить" }).click();
-    await form.getByLabel("Организация").selectOption({ label: "Клуб iiko" });
-    await form.getByLabel("Группа терминалов").selectOption({ label: "Касса" });
-    await expect(form.getByText("Основной · столов: 2")).toBeVisible();
-    await form
-      .getByRole("button", { name: "Загрузить столы и включить обмен" })
-      .click();
-    await expect(page.getByTestId("iiko-status")).toContainText(
-      "Обмен с iiko включён · столов: 2",
-    );
-
     // Гость: завтра 12:00 Стол A занят в iiko, Стол B свободен.
-    await page.context().clearCookies();
-    await page.goto(`/${venue.slug}`);
-    const picker = page.getByTestId("booking-picker");
+    const guestPage = await (await browser.newContext()).newPage();
+    await guestPage.goto(`/${slug}`);
+    const picker = guestPage.getByTestId("booking-picker");
     await picker.getByRole("button", { name: "Завтра", exact: true }).click();
-    await page
+    await guestPage
       .getByTestId("time-slots")
       .getByRole("button")
       .filter({ hasText: /^12:00/ })
       .click();
     await picker.getByRole("button", { name: "Выбрать место" }).click();
     const seat = (name: string) =>
-      page.getByTestId("seat-list").getByRole("button", { name, exact: true });
+      guestPage
+        .getByTestId("seat-list")
+        .getByRole("button", { name, exact: true });
     await expect(seat("Стол A")).toBeDisabled();
     await seat("Стол B").click();
     await picker.getByRole("button", { name: "Далее" }).click();
 
-    const guest = page.getByTestId("guest-form");
+    const guest = guestPage.getByTestId("guest-form");
     await guest.getByLabel("Имя", { exact: true }).fill("Гость iiko");
     await guest.getByLabel("Телефон", { exact: true }).fill("+7 707 111 22 33");
     await guest.getByLabel("Согласен на обработку").check();
     const submit = guest.getByRole("button", { name: "Забронировать" });
     await expect(submit).toBeEnabled({ timeout: 20_000 });
     await submit.click();
-    await expect(page.getByTestId("booking-done")).toContainText(
+    await expect(guestPage.getByTestId("booking-done")).toContainText(
       "Бронь подтверждена",
     );
 
@@ -180,7 +234,7 @@ test("заведение с iiko: занятость из кассы, бронь
     const { data: booking } = await admin
       .from("bookings")
       .select("id, iiko_status")
-      .eq("venue_id", venue.venueId)
+      .eq("venue_id", venue!.id)
       .single();
     expect(booking!.iiko_status).toBe("sent");
 
